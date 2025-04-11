@@ -2,7 +2,7 @@ package id.ac.ui.cs.advprog.berating.service;
 
 import id.ac.ui.cs.advprog.berating.model.Review;
 import id.ac.ui.cs.advprog.berating.model.User;
-import id.ac.ui.cs.advprog.berating.model.ReviewStatus;
+import id.ac.ui.cs.advprog.berating.model.enums.ReviewStatus;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -73,3 +73,4 @@ public class ReviewServiceImplTest {
         assertNull(review.getStatus());
         assertEquals(0, review.getRating());
     }
+}

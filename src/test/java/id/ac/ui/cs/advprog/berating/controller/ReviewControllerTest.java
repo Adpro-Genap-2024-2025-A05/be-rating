@@ -2,7 +2,7 @@ package id.ac.ui.cs.advprog.berating.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import id.ac.ui.cs.advprog.berating.model.Review;
-import id.ac.ui.cs.advprog.berating.model.ReviewStatus;
+import id.ac.ui.cs.advprog.berating.model.enums.ReviewStatus;
 import id.ac.ui.cs.advprog.berating.model.User;
 import id.ac.ui.cs.advprog.berating.service.ReviewService;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,9 +13,13 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -60,15 +64,32 @@ public class ReviewControllerTest {
 
     @Test
     void testCreateReview() throws Exception {
-        when(reviewService.createReview(review)).thenReturn(review);
+        when(reviewService.createReview(any(Review.class))).thenReturn(review);
+
+        String reviewJson = """
+        {
+          "rating": 5,
+          "comment": "Pelayanan bagus",
+          "status": "PENDING",
+          "patient": {
+            "id": "%s",
+            "name": "Patient A"
+          },
+          "doctor": {
+            "id": "%s",
+            "name": "Doctor B"
+          }
+        }
+        """.formatted(review.getPatient().getId(), review.getDoctor().getId());
 
         mockMvc.perform(post("/api/reviews")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(review)))
+                        .content(reviewJson))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.rating").value(5))
                 .andExpect(jsonPath("$.comment").value("Pelayanan bagus"));
     }
+
 
     @Test
     void testGetReviewById() throws Exception {
@@ -84,15 +105,32 @@ public class ReviewControllerTest {
         review.setComment("Updated comment");
         review.setRating(4);
 
-        when(reviewService.updateReview(reviewId, review)).thenReturn(review);
+        when(reviewService.updateReview(eq(reviewId), any(Review.class))).thenReturn(review);
+
+        String updatedReviewJson = """
+        {
+          "rating": 4,
+          "comment": "Updated comment",
+          "status": "PENDING",
+          "patient": {
+            "id": "%s",
+            "name": "Patient A"
+          },
+          "doctor": {
+            "id": "%s",
+            "name": "Doctor B"
+          }
+        }
+        """.formatted(review.getPatient().getId(), review.getDoctor().getId());
 
         mockMvc.perform(put("/api/reviews/" + reviewId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(review)))
+                        .content(updatedReviewJson))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.rating").value(4))
                 .andExpect(jsonPath("$.comment").value("Updated comment"));
     }
+
 
     @Test
     void testDeleteReview() throws Exception {
