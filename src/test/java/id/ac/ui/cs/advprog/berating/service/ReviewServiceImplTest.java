@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -192,7 +193,7 @@ public class ReviewServiceImplTest {
 
     @Test
     void testGetDoctorReviewsEmptyList() {
-        when(reviewRepository.findByDoctorId(doctorId)).thenReturn(Arrays.asList());
+        when(reviewRepository.findByDoctorId(doctorId)).thenReturn(Collections.emptyList());
 
         List<Review> result = reviewService.getDoctorReviews(doctorId);
 
