@@ -13,7 +13,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,22 +38,20 @@ class UserServiceTest {
     @InjectMocks
     private UserService userService;
 
+    private String token;
+    private String userId;
     private UserDTO userDTO;
     private DoctorDTO doctorDTO;
-    private String token;
-    private String doctorId;
 
     @BeforeEach
     void setUp() {
         token = "valid.jwt.token";
-        doctorId = "doctor123";
-
+        userId = "123";
         userDTO = new UserDTO();
         userDTO.setUsername("testuser");
         userDTO.setRole(Role.PACILLIANS);
-
         doctorDTO = new DoctorDTO();
-        doctorDTO.setId(doctorId);
+        doctorDTO.setId(userId);
         doctorDTO.setName("Dr. Test");
         doctorDTO.setPracticeAddress("123 Test St");
         doctorDTO.setWorkSchedule("Mon-Fri 9-5");
@@ -60,38 +59,32 @@ class UserServiceTest {
         doctorDTO.setPhoneNumber("1234567890");
         doctorDTO.setRating(4.5);
 
-        // Setup WebClient mock chain
-        when(webClientBuilder.baseUrl(anyString())).thenReturn(webClientBuilder);
-        when(webClientBuilder.build()).thenReturn(webClient);
         when(webClient.get()).thenReturn(requestHeadersUriSpec);
         when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
-        when(requestHeadersSpec.header(anyString(), anyString())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.header(eq("Authorization"), anyString())).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
     }
 
     // POSITIVE CASES
 
     @Test
-    void getUserLogin_WithValidToken_ShouldReturnUserDTO() {
+    void getUserLogin_ShouldReturnUserDTO() {
         when(responseSpec.bodyToMono(UserDTO.class)).thenReturn(Mono.just(userDTO));
 
-        UserDTO result = userService.getUserLogin(token);
+        UserDTO result = userService.getUserLogin(token, userId);
 
         assertNotNull(result);
         assertEquals(userDTO.getUsername(), result.getUsername());
         assertEquals(userDTO.getRole(), result.getRole());
-        verify(webClientBuilder).baseUrl(anyString());
-        verify(webClientBuilder).build();
-        verify(webClient).get();
-        verify(requestHeadersUriSpec).uri("/api/users/");
+        verify(webClient.get()).uri("/api/users/" + userId);
         verify(requestHeadersSpec).header("Authorization", "Bearer " + token);
     }
 
     @Test
-    void getDoctorById_WithValidId_ShouldReturnDoctorDTO() {
+    void getDoctorById_ShouldReturnDoctorDTO() {
         when(responseSpec.bodyToMono(DoctorDTO.class)).thenReturn(Mono.just(doctorDTO));
 
-        DoctorDTO result = userService.getDoctorById(doctorId);
+        DoctorDTO result = userService.getDoctorById(token, userId);
 
         assertNotNull(result);
         assertEquals(doctorDTO.getId(), result.getId());
@@ -101,10 +94,8 @@ class UserServiceTest {
         assertEquals(doctorDTO.getEmail(), result.getEmail());
         assertEquals(doctorDTO.getPhoneNumber(), result.getPhoneNumber());
         assertEquals(doctorDTO.getRating(), result.getRating());
-        verify(webClientBuilder).baseUrl(anyString());
-        verify(webClientBuilder).build();
-        verify(webClient).get();
-        verify(requestHeadersUriSpec).uri("/api/doctors/" + doctorId);
+        verify(webClient.get()).uri("/api/doctors/" + userId);
+        verify(requestHeadersSpec).header("Authorization", "Bearer " + token);
     }
 
     // NEGATIVE CASES
@@ -113,22 +104,14 @@ class UserServiceTest {
     void getUserLogin_WhenResponseIsNull_ShouldThrowException() {
         when(responseSpec.bodyToMono(UserDTO.class)).thenReturn(Mono.empty());
 
-        assertThrows(RuntimeException.class, () -> userService.getUserLogin(token));
-        verify(webClientBuilder).baseUrl(anyString());
-        verify(webClientBuilder).build();
-        verify(webClient).get();
-        verify(requestHeadersUriSpec).uri("/api/users/");
+        assertThrows(RuntimeException.class, () -> userService.getUserLogin(token, userId));
     }
 
     @Test
     void getDoctorById_WhenResponseIsNull_ShouldThrowException() {
         when(responseSpec.bodyToMono(DoctorDTO.class)).thenReturn(Mono.empty());
 
-        assertThrows(RuntimeException.class, () -> userService.getDoctorById(doctorId));
-        verify(webClientBuilder).baseUrl(anyString());
-        verify(webClientBuilder).build();
-        verify(webClient).get();
-        verify(requestHeadersUriSpec).uri("/api/doctors/" + doctorId);
+        assertThrows(RuntimeException.class, () -> userService.getDoctorById(token, userId));
     }
 
     // CORNER CASES
@@ -137,47 +120,19 @@ class UserServiceTest {
     void getUserLogin_WithEmptyToken_ShouldMakeRequest() {
         when(responseSpec.bodyToMono(UserDTO.class)).thenReturn(Mono.just(userDTO));
 
-        UserDTO result = userService.getUserLogin("");
+        UserDTO result = userService.getUserLogin("", userId);
 
         assertNotNull(result);
-        verify(webClientBuilder).baseUrl(anyString());
-        verify(webClientBuilder).build();
         verify(requestHeadersSpec).header("Authorization", "Bearer ");
     }
 
     @Test
-    void getDoctorById_WithEmptyId_ShouldMakeRequest() {
+    void getDoctorById_WithEmptyUserId_ShouldMakeRequest() {
         when(responseSpec.bodyToMono(DoctorDTO.class)).thenReturn(Mono.just(doctorDTO));
 
-        DoctorDTO result = userService.getDoctorById("");
+        DoctorDTO result = userService.getDoctorById(token, "");
 
         assertNotNull(result);
-        verify(webClientBuilder).baseUrl(anyString());
-        verify(webClientBuilder).build();
-        verify(requestHeadersUriSpec).uri("/api/doctors/");
-    }
-
-    @Test
-    void getUserLogin_WithNullToken_ShouldMakeRequest() {
-        when(responseSpec.bodyToMono(UserDTO.class)).thenReturn(Mono.just(userDTO));
-
-        UserDTO result = userService.getUserLogin(null);
-
-        assertNotNull(result);
-        verify(webClientBuilder).baseUrl(anyString());
-        verify(webClientBuilder).build();
-        verify(requestHeadersSpec).header("Authorization", "Bearer null");
-    }
-
-    @Test
-    void getDoctorById_WithNullId_ShouldMakeRequest() {
-        when(responseSpec.bodyToMono(DoctorDTO.class)).thenReturn(Mono.just(doctorDTO));
-
-        DoctorDTO result = userService.getDoctorById(null);
-
-        assertNotNull(result);
-        verify(webClientBuilder).baseUrl(anyString());
-        verify(webClientBuilder).build();
-        verify(requestHeadersUriSpec).uri("/api/doctors/null");
+        verify(webClient.get()).uri("/api/doctors/");
     }
 } 

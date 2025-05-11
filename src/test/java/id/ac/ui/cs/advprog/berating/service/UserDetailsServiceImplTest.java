@@ -1,18 +1,13 @@
 package id.ac.ui.cs.advprog.berating.service;
 
-import id.ac.ui.cs.advprog.berating.dto.UserDTO;
-import id.ac.ui.cs.advprog.berating.enums.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -21,106 +16,78 @@ import static org.mockito.Mockito.*;
 class UserDetailsServiceImplTest {
 
     @Mock
-    private UserService userService;
+    private JwtService jwtService;
 
     @InjectMocks
     private UserDetailsServiceImpl userDetailsService;
 
-    private UserDTO userDTO;
-    private String token;
+    private String validToken;
+    private String username;
+    private String role;
 
     @BeforeEach
     void setUp() {
-        token = "valid.jwt.token";
-        userDTO = new UserDTO();
-        userDTO.setUsername("testuser");
-        userDTO.setRole(Role.PACILLIANS);
+        username = "testuser";
+        role = "ROLE_USER";
+        validToken = "valid.jwt.token";
     }
 
     // POSITIVE CASES
 
     @Test
     void loadUserByUsername_WithValidToken_ShouldReturnUserDetails() {
-        when(userService.getUserLogin(token)).thenReturn(userDTO);
+        when(jwtService.extractUsername(validToken)).thenReturn(username);
+        when(jwtService.extractRole(validToken)).thenReturn(role);
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(token);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(validToken);
 
         assertNotNull(userDetails);
-        assertEquals(userDTO.getUsername(), userDetails.getUsername());
-        assertTrue(userDetails.getAuthorities().contains(new SimpleGrantedAuthority(userDTO.getRole().toString())));
-        verify(userService).getUserLogin(token);
+        assertEquals(username, userDetails.getUsername());
+        assertTrue(userDetails.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals(role)));
     }
 
     @Test
-    void loadUserByUsername_WithDifferentRole_ShouldReturnCorrectAuthority() {
-        userDTO.setRole(Role.CAREGIVER);
-        when(userService.getUserLogin(token)).thenReturn(userDTO);
+    void loadUserByUsername_WithValidTokenNoRole_ShouldReturnUserDetailsWithoutRole() {
+        when(jwtService.extractUsername(validToken)).thenReturn(username);
+        when(jwtService.extractRole(validToken)).thenReturn(null);
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(token);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(validToken);
 
         assertNotNull(userDetails);
-        assertTrue(userDetails.getAuthorities().contains(new SimpleGrantedAuthority(Role.CAREGIVER.toString())));
-        verify(userService).getUserLogin(token);
+        assertEquals(username, userDetails.getUsername());
+        assertTrue(userDetails.getAuthorities().isEmpty());
     }
 
     // NEGATIVE CASES
 
     @Test
-    void loadUserByUsername_WhenUserServiceThrowsException_ShouldReturnNull() {
-        when(userService.getUserLogin(token)).thenThrow(new RuntimeException("Service error"));
+    void loadUserByUsername_WithNullUsername_ShouldThrowException() {
+        when(jwtService.extractUsername(validToken)).thenReturn(null);
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(token);
-
-        assertNull(userDetails);
-        verify(userService).getUserLogin(token);
+        assertThrows(UsernameNotFoundException.class, () -> 
+            userDetailsService.loadUserByUsername(validToken));
     }
 
     @Test
-    void loadUserByUsername_WithInvalidToken_ShouldReturnNull() {
-        when(userService.getUserLogin(token)).thenThrow(new UsernameNotFoundException("Invalid token"));
+    void loadUserByUsername_WhenJwtServiceThrowsException_ShouldPropagateException() {
+        when(jwtService.extractUsername(validToken)).thenThrow(new RuntimeException("JWT error"));
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(token);
-
-        assertNull(userDetails);
-        verify(userService).getUserLogin(token);
+        assertThrows(UsernameNotFoundException.class, () -> 
+            userDetailsService.loadUserByUsername(validToken));
     }
 
     // CORNER CASES
 
     @Test
-    void loadUserByUsername_WithEmptyToken_ShouldReturnNull() {
-        when(userService.getUserLogin("")).thenThrow(new UsernameNotFoundException("Empty token"));
-
-        UserDetails userDetails = userDetailsService.loadUserByUsername("");
-
-        assertNull(userDetails);
-        verify(userService).getUserLogin("");
+    void loadUserByUsername_WithEmptyToken_ShouldThrowException() {
+        assertThrows(UsernameNotFoundException.class, () -> 
+            userDetailsService.loadUserByUsername(""));
     }
 
     @Test
-    void loadUserByUsername_WithNullToken_ShouldReturnNull() {
-        when(userService.getUserLogin(null)).thenThrow(new UsernameNotFoundException("Null token"));
-
-        UserDetails userDetails = userDetailsService.loadUserByUsername(null);
-
-        assertNull(userDetails);
-        verify(userService).getUserLogin(null);
-    }
-
-    @Test
-    void loadUserByUsername_WithNullRole_ShouldReturnUserDetailsWithEmptyAuthorities() {
-        // Create a new UserDTO with null role
-        UserDTO userWithNullRole = new UserDTO();
-        userWithNullRole.setUsername("testuser");
-        userWithNullRole.setRole(null);
-        
-        when(userService.getUserLogin(token)).thenReturn(userWithNullRole);
-
-        UserDetails userDetails = userDetailsService.loadUserByUsername(token);
-
-        assertNotNull(userDetails);
-        assertEquals(userWithNullRole.getUsername(), userDetails.getUsername());
-        assertTrue(userDetails.getAuthorities().isEmpty());
-        verify(userService).getUserLogin(token);
+    void loadUserByUsername_WithNullToken_ShouldThrowException() {
+        assertThrows(UsernameNotFoundException.class, () -> 
+            userDetailsService.loadUserByUsername(null));
     }
 } 

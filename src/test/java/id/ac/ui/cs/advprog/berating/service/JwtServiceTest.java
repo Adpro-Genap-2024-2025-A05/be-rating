@@ -1,7 +1,5 @@
 package id.ac.ui.cs.advprog.berating.service;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
@@ -16,14 +14,12 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.lang.reflect.Method;
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class JwtServiceTest {
@@ -44,7 +40,7 @@ class JwtServiceTest {
     void setUp() {
         // Use a fixed secret key for testing
         secretKey = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
-        jwtExpirationTime = 3600000; // 1 hour
+        jwtExpirationTime = 86400000; // 24 hours
         userDetails = new User("testuser", "password", java.util.Collections.emptyList());
 
         // Set the fields in the actual service
@@ -54,8 +50,9 @@ class JwtServiceTest {
         // Create signing key
         signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey));
 
-        // Create valid token
+        // Create valid token with role claim
         Map<String, Object> claims = new HashMap<>();
+        claims.put("role", "ROLE_USER");
         validToken = Jwts.builder()
                 .setClaims(claims)
                 .setSubject(userDetails.getUsername())
@@ -80,25 +77,31 @@ class JwtServiceTest {
     // POSITIVE CASES
 
     @Test
-    void extractUsername_WithValidToken_ShouldReturnUsername() {
+    void extractUsername_ShouldReturnUsername() {
         String username = jwtService.extractUsername(validToken);
         assertEquals(userDetails.getUsername(), username);
     }
 
     @Test
-    void isTokenValid_WithValidTokenAndMatchingUser_ShouldReturnTrue() {
+    void extractRole_ShouldReturnRole() {
+        String role = jwtService.extractRole(validToken);
+        assertEquals("ROLE_USER", role);
+    }
+
+    @Test
+    void isTokenValid_WithValidToken_ShouldReturnTrue() {
         boolean isValid = jwtService.isTokenValid(validToken, userDetails);
         assertTrue(isValid);
     }
 
     @Test
-    void getExpirationTime_ShouldReturnConfiguredTime() {
-        long expirationTime = jwtService.getExpirationTime();
-        assertEquals(jwtExpirationTime, expirationTime);
+    void getExpirationTime_ShouldReturnCorrectTime() {
+        long time = jwtService.getExpirationTime();
+        assertEquals(jwtExpirationTime, time);
     }
 
     @Test
-    void getRemainingTime_WithValidToken_ShouldReturnPositiveTime() {
+    void getRemainingTime_WithValidToken_ShouldReturnPositiveValue() {
         long remainingTime = jwtService.getRemainingTime(validToken);
         assertTrue(remainingTime > 0);
     }
@@ -106,15 +109,8 @@ class JwtServiceTest {
     // NEGATIVE CASES
 
     @Test
-    void isTokenValid_WithExpiredToken_ShouldReturnFalse() {
-        boolean isValid = jwtService.isTokenValid(expiredToken, userDetails);
-        assertFalse(isValid);
-    }
-
-    @Test
-    void isTokenValid_WithNonMatchingUser_ShouldReturnFalse() {
-        UserDetails differentUser = new User("differentuser", "password", java.util.Collections.emptyList());
-        boolean isValid = jwtService.isTokenValid(validToken, differentUser);
+    void isTokenValid_WithInvalidToken_ShouldReturnFalse() {
+        boolean isValid = jwtService.isTokenValid(invalidToken, userDetails);
         assertFalse(isValid);
     }
 
@@ -127,19 +123,20 @@ class JwtServiceTest {
     // CORNER CASES
 
     @Test
-    void extractUsername_WithInvalidToken_ShouldHandleException() {
-        try {
-            jwtService.extractUsername(invalidToken);
-            fail("Expected exception was not thrown");
-        } catch (Exception e) {
-            // Expected exception
-            assertTrue(true);
-        }
+    void extractUsername_WithInvalidToken_ShouldThrowException() {
+        assertThrows(Exception.class, () -> jwtService.extractUsername(invalidToken));
     }
 
     @Test
-    void isTokenValid_WithInvalidToken_ShouldReturnFalse() {
-        boolean isValid = jwtService.isTokenValid(invalidToken, userDetails);
+    void extractRole_WithInvalidToken_ShouldReturnNull() {
+        String role = jwtService.extractRole(invalidToken);
+        assertNull(role);
+    }
+
+    @Test
+    void isTokenValid_WithNonMatchingUser_ShouldReturnFalse() {
+        UserDetails differentUser = new User("differentuser", "password", java.util.Collections.emptyList());
+        boolean isValid = jwtService.isTokenValid(validToken, differentUser);
         assertFalse(isValid);
     }
 
@@ -150,14 +147,9 @@ class JwtServiceTest {
     }
 
     @Test
-    void isTokenValid_WithNullUserDetails_ShouldHandleException() {
-        try {
-            jwtService.isTokenValid(validToken, null);
-            fail("Expected exception was not thrown");
-        } catch (Exception e) {
-            // Expected exception
-            assertTrue(true);
-        }
+    void isTokenValid_WithNullUserDetails_ShouldReturnFalse() {
+        boolean isValid = jwtService.isTokenValid(validToken, null);
+        assertFalse(isValid);
     }
 
     @Test

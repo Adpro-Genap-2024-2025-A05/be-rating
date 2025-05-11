@@ -1,127 +1,127 @@
 package id.ac.ui.cs.advprog.berating.config;
 
-import id.ac.ui.cs.advprog.berating.filter.JwtAuthFilter;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletMapping;
+import id.ac.ui.cs.advprog.berating.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.DefaultSecurityFilterChain;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-
-import java.util.List;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class SecurityConfigTest {
+class ApplicationConfigTest {
 
     @Mock
-    private JwtAuthFilter jwtAuthFilter;
+    private JwtService jwtService;
 
     @Mock
-    private AuthenticationProvider authenticationProvider;
+    private AuthenticationConfiguration authenticationConfiguration;
 
-    @Mock
-    private HttpSecurity httpSecurity;
-
-    @Mock
-    private HttpServletRequest request;
-
-    @Mock
-    private HttpServletMapping servletMapping;
-
-    private SecurityConfig securityConfig;
+    private ApplicationConfig applicationConfig;
 
     @BeforeEach
     void setUp() {
-        securityConfig = new SecurityConfig(jwtAuthFilter, authenticationProvider);
+        applicationConfig = new ApplicationConfig(jwtService);
     }
 
     // POSITIVE CASES
 
     @Test
-    void securityFilterChain_ShouldConfigureSecurityCorrectly() throws Exception {
-        when(httpSecurity.csrf(any())).thenReturn(httpSecurity);
-        when(httpSecurity.cors(any())).thenReturn(httpSecurity);
-        when(httpSecurity.authorizeHttpRequests(any())).thenReturn(httpSecurity);
-        when(httpSecurity.sessionManagement(any())).thenReturn(httpSecurity);
-        when(httpSecurity.authenticationProvider(any())).thenReturn(httpSecurity);
-        when(httpSecurity.addFilterBefore(any(), any())).thenReturn(httpSecurity);
-        when(httpSecurity.build()).thenReturn(mock(DefaultSecurityFilterChain.class));
+    void userDetailsService_ShouldCreateUserDetailsServiceImpl() {
+        // Act
+        UserDetailsService service = applicationConfig.userDetailsService();
 
-        SecurityFilterChain filterChain = securityConfig.securityFilterChain(httpSecurity);
-
-        assertNotNull(filterChain);
-        verify(httpSecurity).csrf(any());
-        verify(httpSecurity).cors(any());
-        verify(httpSecurity).authorizeHttpRequests(any());
-        verify(httpSecurity).sessionManagement(any());
-        verify(httpSecurity).authenticationProvider(authenticationProvider);
-        verify(httpSecurity).addFilterBefore(jwtAuthFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+        // Assert
+        assertNotNull(service);
+        assertTrue(service instanceof id.ac.ui.cs.advprog.berating.service.UserDetailsServiceImpl);
     }
 
     @Test
-    void corsConfigurationSource_ShouldConfigureCorsCorrectly() {
-        when(request.getRequestURI()).thenReturn("/test");
-        when(request.getContextPath()).thenReturn("");
-        when(request.getServletPath()).thenReturn("");
-        when(request.getHttpServletMapping()).thenReturn(servletMapping);
-        when(servletMapping.getMappingMatch()).thenReturn(null);
+    void authenticationProvider_ShouldCreateDaoAuthenticationProvider() {
+        // Act
+        AuthenticationProvider provider = applicationConfig.authenticationProvider();
 
-        CorsConfigurationSource corsConfig = securityConfig.corsConfigurationSource();
+        // Assert
+        assertNotNull(provider);
+        assertTrue(provider instanceof DaoAuthenticationProvider);
+        DaoAuthenticationProvider daoProvider = (DaoAuthenticationProvider) provider;
+        assertNotNull(ReflectionTestUtils.getField(daoProvider, "userDetailsService"));
+        assertNotNull(ReflectionTestUtils.getField(daoProvider, "passwordEncoder"));
+    }
 
-        assertNotNull(corsConfig);
-        CorsConfiguration config = corsConfig.getCorsConfiguration(request);
-        assertNotNull(config);
-        assertEquals(List.of("*"), config.getAllowedOrigins());
-        assertEquals(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"), config.getAllowedMethods());
-        assertEquals(List.of("Authorization", "Content-Type"), config.getAllowedHeaders());
+    @Test
+    void authenticationManager_ShouldReturnAuthenticationManager() throws Exception {
+        // Arrange
+        AuthenticationManager mockAuthManager = mock(AuthenticationManager.class);
+        when(authenticationConfiguration.getAuthenticationManager()).thenReturn(mockAuthManager);
+
+        // Act
+        AuthenticationManager result = applicationConfig.authenticationManager(authenticationConfiguration);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(mockAuthManager, result);
+        verify(authenticationConfiguration).getAuthenticationManager();
+    }
+
+    @Test
+    void passwordEncoder_ShouldReturnBCryptPasswordEncoder() {
+        // Act
+        PasswordEncoder encoder = applicationConfig.passwordEncoder();
+
+        // Assert
+        assertNotNull(encoder);
+        assertTrue(encoder instanceof org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder);
     }
 
     // NEGATIVE CASES
 
     @Test
-    void securityFilterChain_WhenExceptionOccurs_ShouldPropagateException() throws Exception {
-        when(httpSecurity.csrf(any())).thenThrow(new RuntimeException("Test exception"));
+    void authenticationManager_WhenExceptionOccurs_ShouldPropagateException() throws Exception {
+        // Arrange
+        when(authenticationConfiguration.getAuthenticationManager())
+            .thenThrow(new RuntimeException("Test exception"));
 
-        assertThrows(RuntimeException.class, () -> securityConfig.securityFilterChain(httpSecurity));
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> 
+            applicationConfig.authenticationManager(authenticationConfiguration));
     }
 
     // CORNER CASES
 
     @Test
-    void securityFilterChain_WithNullHttpSecurity_ShouldThrowException() {
-        assertThrows(NullPointerException.class, () -> securityConfig.securityFilterChain(null));
+    void authenticationProvider_WithNullJwtService_ShouldThrowException() {
+        // Arrange
+        ApplicationConfig configWithNullService = new ApplicationConfig(null);
+        ReflectionTestUtils.setField(configWithNullService, "jwtService", null);
+
+        // Act & Assert
+        assertThrows(NullPointerException.class, () -> 
+            configWithNullService.authenticationProvider());
     }
 
     @Test
-    void corsConfigurationSource_ShouldHandleNullRequest() {
-        CorsConfigurationSource corsConfig = securityConfig.corsConfigurationSource();
+    void passwordEncoder_ShouldGenerateDifferentHashesForSamePassword() {
+        // Arrange
+        PasswordEncoder encoder = applicationConfig.passwordEncoder();
+        String password = "testPassword";
 
-        assertThrows(NullPointerException.class, () -> corsConfig.getCorsConfiguration(null));
-    }
+        // Act
+        String hash1 = encoder.encode(password);
+        String hash2 = encoder.encode(password);
 
-    @Test
-    void securityFilterChain_ShouldConfigureStatelessSession() throws Exception {
-        when(httpSecurity.csrf(any())).thenReturn(httpSecurity);
-        when(httpSecurity.cors(any())).thenReturn(httpSecurity);
-        when(httpSecurity.authorizeHttpRequests(any())).thenReturn(httpSecurity);
-        when(httpSecurity.sessionManagement(any())).thenReturn(httpSecurity);
-        when(httpSecurity.authenticationProvider(any())).thenReturn(httpSecurity);
-        when(httpSecurity.addFilterBefore(any(), any())).thenReturn(httpSecurity);
-        when(httpSecurity.build()).thenReturn(mock(DefaultSecurityFilterChain.class));
-
-        securityConfig.securityFilterChain(httpSecurity);
-
-        verify(httpSecurity).sessionManagement(any());
+        // Assert
+        assertNotEquals(hash1, hash2); // BCrypt should generate different salts
+        assertTrue(encoder.matches(password, hash1));
+        assertTrue(encoder.matches(password, hash2));
     }
 }
