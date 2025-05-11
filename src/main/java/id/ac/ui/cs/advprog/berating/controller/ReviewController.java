@@ -32,7 +32,7 @@ import lombok.RequiredArgsConstructor;
 @CrossOrigin(origins = "*")
 public class ReviewController {
     private final ReviewService reviewService;
-    private static final String successMessage = "Success to retrieve doctor reviews.";
+    private static final String SUCCESS_MESSAGE = "Success to retrieve doctor reviews.";
 
     @GetMapping(value = "/{doctorId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BaseResponseDTO<List<Review>>> getDoctorReviews(@PathVariable("doctorId") UUID doctorId) {
@@ -41,7 +41,7 @@ public class ReviewController {
 
         baseResponseDTO.setStatus(HttpStatus.OK.value());
         baseResponseDTO.setData(reviews);
-        baseResponseDTO.setMessage(successMessage);
+        baseResponseDTO.setMessage(SUCCESS_MESSAGE);
         baseResponseDTO.setTimestamp(new Date());
 
         return ResponseEntity.ok(baseResponseDTO);
@@ -65,7 +65,7 @@ public class ReviewController {
             BaseResponseDTO<Review> baseResponseDTO = new BaseResponseDTO<>();
             baseResponseDTO.setStatus(HttpStatus.CREATED.value());
             baseResponseDTO.setData(review);
-            baseResponseDTO.setMessage(successMessage);
+            baseResponseDTO.setMessage(SUCCESS_MESSAGE);
             baseResponseDTO.setTimestamp(new Date());
 
             return ResponseEntity.status(HttpStatus.CREATED).body(baseResponseDTO);
@@ -92,7 +92,7 @@ public class ReviewController {
             BaseResponseDTO<Review> baseResponseDTO = new BaseResponseDTO<>();
             baseResponseDTO.setStatus(HttpStatus.OK.value());
             baseResponseDTO.setData(updatedReview);
-            baseResponseDTO.setMessage(successMessage);
+            baseResponseDTO.setMessage(SUCCESS_MESSAGE);
             baseResponseDTO.setTimestamp(new Date());
 
             return ResponseEntity.ok(baseResponseDTO);
