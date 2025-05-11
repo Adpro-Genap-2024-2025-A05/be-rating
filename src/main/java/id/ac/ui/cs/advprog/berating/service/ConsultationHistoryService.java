@@ -3,6 +3,7 @@ package id.ac.ui.cs.advprog.berating.service;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import id.ac.ui.cs.advprog.berating.dto.ConsultationHistoryDTO;
+import id.ac.ui.cs.advprog.berating.exception.ConsultationHistoryNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -18,7 +19,7 @@ public class ConsultationHistoryService {
                 .block();
 
         if (response == null) {
-            throw new RuntimeException("Failed to fetch user data");
+            throw new ConsultationHistoryNotFoundException(id);
         }
 
         return response;
