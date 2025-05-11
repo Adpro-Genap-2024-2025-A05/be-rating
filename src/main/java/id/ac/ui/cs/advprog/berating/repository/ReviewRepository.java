@@ -1,9 +1,12 @@
 package id.ac.ui.cs.advprog.berating.repository;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import id.ac.ui.cs.advprog.berating.model.Review;
 
-public interface ReviewRepository extends JpaRepository<Review, UUID> {}
+public interface ReviewRepository extends JpaRepository<Review, UUID> {
+    List<Review> findByDoctorId(UUID doctorId);
+}

@@ -10,10 +10,14 @@ import id.ac.ui.cs.advprog.berating.enums.ReviewStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,9 +28,10 @@ import lombok.Setter;
 @AllArgsConstructor
 @Entity
 @Table(name = "review")
+@Builder
 public class Review {
     @Id
-    private UUID id = UUID.randomUUID();
+    private UUID id;
 
     @Column(name="patient_id", nullable = false)
     private UUID patientId;
@@ -34,10 +39,15 @@ public class Review {
     @Column(name="doctor_id", nullable = false)
     private UUID doctorId;
 
+    @Column(name="consultation_id", nullable = false)
+    private UUID consultationId;
+
+    @Min(value = 1, message = "Rating must be at least 1")
+    @Max(value = 5, message = "Rating must be at most 5")
     @Column(name="rating", nullable = false)
     private Integer rating;
 
-    @Column(name="comment", nullable = false, length = 500)
+    @Column(name="comment", length = 500)
     private String comment;
 
     @Column(name="status", nullable = false)
@@ -52,4 +62,11 @@ public class Review {
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "updated_at", nullable = false)
     private Date updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+    }
 }
