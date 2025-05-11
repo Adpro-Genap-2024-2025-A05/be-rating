@@ -1,6 +1,7 @@
 package id.ac.ui.cs.advprog.berating.service;
 
 import id.ac.ui.cs.advprog.berating.dto.ConsultationHistoryDTO;
+import id.ac.ui.cs.advprog.berating.exception.ConsultationHistoryNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -76,12 +77,15 @@ class ConsultationHistoryServiceTest {
     // NEGATIVE CASES
 
     @Test
-    void getConsultationHistoryById_WhenResponseIsNull_ShouldThrowException() {
+    void getConsultationHistoryById_WhenResponseIsNull_ShouldThrowConsultationHistoryNotFoundException() {
         when(responseSpec.bodyToMono(ConsultationHistoryDTO.class)).thenReturn(Mono.empty());
 
-        assertThrows(RuntimeException.class, () -> 
-            consultationHistoryService.getConsultationHistoryById(consultationId)
+        ConsultationHistoryNotFoundException exception = assertThrows(
+            ConsultationHistoryNotFoundException.class,
+            () -> consultationHistoryService.getConsultationHistoryById(consultationId)
         );
+
+        assertEquals("Consultation history not found with id: " + consultationId, exception.getMessage());
         verify(webClient).get();
         verify(requestHeadersUriSpec).uri("/api/consultiation/" + consultationId);
     }

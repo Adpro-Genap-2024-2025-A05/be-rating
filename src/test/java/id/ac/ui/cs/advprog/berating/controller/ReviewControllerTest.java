@@ -5,6 +5,7 @@ import id.ac.ui.cs.advprog.berating.dto.ReviewRequest;
 import id.ac.ui.cs.advprog.berating.enums.ReviewStatus;
 import id.ac.ui.cs.advprog.berating.interfaces.ReviewService;
 import id.ac.ui.cs.advprog.berating.model.Review;
+import id.ac.ui.cs.advprog.berating.exception.ReviewNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -158,12 +160,14 @@ class ReviewControllerTest {
     @Test
     void testUpdateReviewStatus_ReviewNotFound() {
         when(reviewService.updateReviewStatus(any(UUID.class), any(ReviewStatus.class)))
-                .thenThrow(new RuntimeException("Review not found"));
+                .thenReturn(null);
 
-        ResponseEntity<?> response = reviewController.updateReviewStatus(reviewId, ReviewStatus.APPROVED);
+        ReviewNotFoundException exception = assertThrows(
+            ReviewNotFoundException.class,
+            () -> reviewController.updateReviewStatus(reviewId, ReviewStatus.APPROVED)
+        );
 
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals("Review not found", response.getBody());
+        assertEquals("Review not found with id: " + reviewId, exception.getMessage());
         verify(reviewService).updateReviewStatus(reviewId, ReviewStatus.APPROVED);
     }
 

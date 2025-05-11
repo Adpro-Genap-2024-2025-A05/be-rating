@@ -28,6 +28,8 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.ServletWebRequest;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.security.SignatureException;
@@ -46,7 +48,7 @@ public class GlobalExceptionHandlerTest {
 
     @BeforeEach
     void setUp() {
-        when(webRequest.getDescription(false)).thenReturn("uri=/api/test");
+        // Remove unnecessary stubbing
     }
 
     @Test
@@ -55,6 +57,7 @@ public class GlobalExceptionHandlerTest {
         FieldError fieldError = new FieldError("object", "field", "error message");
         when(ex.getBindingResult()).thenReturn(bindingResult);
         when(bindingResult.getAllErrors()).thenReturn(java.util.Collections.singletonList(fieldError));
+        lenient().when(webRequest.getDescription(false)).thenReturn("uri=/api/test");
 
         ResponseEntity<ErrorResponse> response = exceptionHandler.handleValidationExceptions(ex, webRequest);
 
@@ -260,5 +263,96 @@ public class GlobalExceptionHandlerTest {
         assertNotNull(response.getBody().getDetails());
         Map<String, String> details = (Map<String, String>) response.getBody().getDetails();
         assertEquals("Invalid value", details.get("field"));
+    }
+
+    @Test
+    void handleConsultationHistoryNotFoundException_ShouldReturnNotFoundResponse() {
+        // Arrange
+        String consultationId = "123";
+        ConsultationHistoryNotFoundException ex = new ConsultationHistoryNotFoundException(consultationId);
+        ServletWebRequest request = new ServletWebRequest(new MockHttpServletRequest());
+
+        // Act
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleConsultationHistoryNotFoundException(ex, request);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(HttpStatus.NOT_FOUND.value(), response.getBody().getStatus());
+        assertEquals("Consultation History Not Found", response.getBody().getError());
+        assertEquals("Consultation history not found with id: " + consultationId, response.getBody().getMessage());
+    }
+
+    @Test
+    void handleConsultationHistoryNotFoundException_ShouldIncludePathInResponse() {
+        // Arrange
+        ConsultationHistoryNotFoundException ex = new ConsultationHistoryNotFoundException("123");
+        MockHttpServletRequest mockRequest = new MockHttpServletRequest("GET", "/api/consultations/123");
+        ServletWebRequest request = new ServletWebRequest(mockRequest);
+
+        // Act
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleConsultationHistoryNotFoundException(ex, request);
+
+        // Assert
+        assertNotNull(response.getBody());
+        assertEquals("/api/consultations/123", response.getBody().getPath());
+    }
+
+    @Test
+    void handleUserNotFoundException_ShouldReturnNotFoundResponse() {
+        // Arrange
+        String userId = "123";
+        UserNotFoundException ex = new UserNotFoundException(userId);
+        ServletWebRequest request = new ServletWebRequest(new MockHttpServletRequest());
+
+        // Act
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleUserNotFoundException(ex, request);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(HttpStatus.NOT_FOUND.value(), response.getBody().getStatus());
+        assertEquals("User Not Found", response.getBody().getError());
+        assertEquals("User not found with id: " + userId, response.getBody().getMessage());
+    }
+
+    @Test
+    void handleDoctorNotFoundException_ShouldReturnNotFoundResponse() {
+        // Arrange
+        String doctorId = "123";
+        DoctorNotFoundException ex = new DoctorNotFoundException(doctorId);
+        ServletWebRequest request = new ServletWebRequest(new MockHttpServletRequest());
+
+        // Act
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleDoctorNotFoundException(ex, request);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(HttpStatus.NOT_FOUND.value(), response.getBody().getStatus());
+        assertEquals("Doctor Not Found", response.getBody().getError());
+        assertEquals("Doctor not found with id: " + doctorId, response.getBody().getMessage());
+    }
+
+    @Test
+    void handleReviewNotFoundException_ShouldReturnNotFoundResponse() {
+        // Arrange
+        String reviewId = "123";
+        ReviewNotFoundException ex = new ReviewNotFoundException(reviewId);
+        ServletWebRequest request = new ServletWebRequest(new MockHttpServletRequest());
+
+        // Act
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleReviewNotFoundException(ex, request);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(HttpStatus.NOT_FOUND.value(), response.getBody().getStatus());
+        assertEquals("Review Not Found", response.getBody().getError());
+        assertEquals("Review not found with id: " + reviewId, response.getBody().getMessage());
     }
 }
