@@ -251,4 +251,26 @@ class ReviewControllerTest {
         assertEquals(review, responseBody.getData());
         verify(reviewService).updateReviewStatus(reviewId, ReviewStatus.PENDING);
     }
+
+    @Test
+    void testUpdateReviewStatus_NullStatus() {
+        ResponseEntity<?> response = reviewController.updateReviewStatus(reviewId, null);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Invalid status", response.getBody());
+        verify(reviewService, never()).updateReviewStatus(any(), any());
+    }
+
+    @Test
+    void testCreateReview_ServiceThrowsIllegalArgumentException() {
+        String errorMessage = "Invalid consultation ID";
+        when(reviewService.createReview(eq(consultationId), any(ReviewRequest.class)))
+                .thenThrow(new IllegalArgumentException(errorMessage));
+
+        ResponseEntity<?> response = reviewController.createReview(consultationId, reviewRequest);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(errorMessage, response.getBody());
+        verify(reviewService).createReview(eq(consultationId), any(ReviewRequest.class));
+    }
 }

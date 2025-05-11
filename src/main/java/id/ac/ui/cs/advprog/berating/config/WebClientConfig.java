@@ -14,7 +14,7 @@ public class WebClientConfig {
             Dotenv dotenv = Dotenv.configure().load();
             return dotenv.get("PROFILE_SERVICE_URL");
         } catch (Exception e) {
-            return System.getenv("PROFILE_SERVICE_URL");
+            return "http://localhost:8080";
         }
     }
 
