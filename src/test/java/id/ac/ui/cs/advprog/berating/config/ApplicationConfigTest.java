@@ -24,50 +24,38 @@ class ApplicationConfigTest {
     private JwtService jwtService;
 
     @Mock
+    private UserDetailsService userDetailsService;
+
+    @Mock
     private AuthenticationConfiguration authenticationConfiguration;
 
     private ApplicationConfig applicationConfig;
 
     @BeforeEach
     void setUp() {
-        applicationConfig = new ApplicationConfig(jwtService);
+        applicationConfig = new ApplicationConfig(jwtService, userDetailsService);
     }
 
     // POSITIVE CASES
 
     @Test
-    void userDetailsService_ShouldCreateUserDetailsServiceImpl() {
-        // Act
-        UserDetailsService service = applicationConfig.userDetailsService();
-
-        // Assert
-        assertNotNull(service);
-        assertTrue(service instanceof id.ac.ui.cs.advprog.berating.service.UserDetailsServiceImpl);
-    }
-
-    @Test
     void authenticationProvider_ShouldCreateDaoAuthenticationProvider() {
-        // Act
         AuthenticationProvider provider = applicationConfig.authenticationProvider();
 
-        // Assert
         assertNotNull(provider);
         assertTrue(provider instanceof DaoAuthenticationProvider);
         DaoAuthenticationProvider daoProvider = (DaoAuthenticationProvider) provider;
-        assertNotNull(ReflectionTestUtils.getField(daoProvider, "userDetailsService"));
+        assertEquals(userDetailsService, ReflectionTestUtils.getField(daoProvider, "userDetailsService"));
         assertNotNull(ReflectionTestUtils.getField(daoProvider, "passwordEncoder"));
     }
 
     @Test
     void authenticationManager_ShouldReturnAuthenticationManager() throws Exception {
-        // Arrange
         AuthenticationManager mockAuthManager = mock(AuthenticationManager.class);
         when(authenticationConfiguration.getAuthenticationManager()).thenReturn(mockAuthManager);
 
-        // Act
         AuthenticationManager result = applicationConfig.authenticationManager(authenticationConfiguration);
 
-        // Assert
         assertNotNull(result);
         assertEquals(mockAuthManager, result);
         verify(authenticationConfiguration).getAuthenticationManager();
@@ -75,10 +63,8 @@ class ApplicationConfigTest {
 
     @Test
     void passwordEncoder_ShouldReturnBCryptPasswordEncoder() {
-        // Act
         PasswordEncoder encoder = applicationConfig.passwordEncoder();
 
-        // Assert
         assertNotNull(encoder);
         assertTrue(encoder instanceof org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder);
     }
@@ -87,11 +73,9 @@ class ApplicationConfigTest {
 
     @Test
     void authenticationManager_WhenExceptionOccurs_ShouldPropagateException() throws Exception {
-        // Arrange
         when(authenticationConfiguration.getAuthenticationManager())
             .thenThrow(new RuntimeException("Test exception"));
 
-        // Act & Assert
         assertThrows(RuntimeException.class, () -> 
             applicationConfig.authenticationManager(authenticationConfiguration));
     }
@@ -99,28 +83,26 @@ class ApplicationConfigTest {
     // CORNER CASES
 
     @Test
-    void authenticationProvider_WithNullJwtService_ShouldThrowException() {
-        // Arrange
-        ApplicationConfig configWithNullService = new ApplicationConfig(null);
-        ReflectionTestUtils.setField(configWithNullService, "jwtService", null);
+    void constructor_WithNullUserDetailsService_ShouldThrowException() {
+        assertThrows(IllegalArgumentException.class, () -> 
+            new ApplicationConfig(jwtService, null));
+    }
 
-        // Act & Assert
-        assertThrows(NullPointerException.class, () -> 
-            configWithNullService.authenticationProvider());
+    @Test
+    void constructor_WithNullJwtService_ShouldThrowException() {
+        assertThrows(IllegalArgumentException.class, () -> 
+            new ApplicationConfig(null, userDetailsService));
     }
 
     @Test
     void passwordEncoder_ShouldGenerateDifferentHashesForSamePassword() {
-        // Arrange
         PasswordEncoder encoder = applicationConfig.passwordEncoder();
         String password = "testPassword";
 
-        // Act
         String hash1 = encoder.encode(password);
         String hash2 = encoder.encode(password);
 
-        // Assert
-        assertNotEquals(hash1, hash2); // BCrypt should generate different salts
+        assertNotEquals(hash1, hash2);
         assertTrue(encoder.matches(password, hash1));
         assertTrue(encoder.matches(password, hash2));
     }

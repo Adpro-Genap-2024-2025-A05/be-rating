@@ -4,7 +4,6 @@ import id.ac.ui.cs.advprog.berating.dto.ConsultationHistoryDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -18,9 +17,6 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ConsultationHistoryServiceTest {
-
-    @Mock
-    private WebClient.Builder webClientBuilder;
 
     @Mock
     private WebClient webClient;
@@ -51,14 +47,12 @@ class ConsultationHistoryServiceTest {
         consultationHistoryDTO.setNotes("Regular checkup completed");
 
         // Setup WebClient mock chain
-        when(webClientBuilder.baseUrl(anyString())).thenReturn(webClientBuilder);
-        when(webClientBuilder.build()).thenReturn(webClient);
         when(webClient.get()).thenReturn(requestHeadersUriSpec);
         when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
 
-        // Initialize the service with the mocked WebClient.Builder
-        consultationHistoryService = new ConsultationHistoryService(webClientBuilder);
+        // Initialize the service with the mocked WebClient
+        consultationHistoryService = new ConsultationHistoryService(webClient);
     }
 
     // POSITIVE CASES
@@ -75,7 +69,6 @@ class ConsultationHistoryServiceTest {
         assertEquals(consultationHistoryDTO.getDoctorId(), result.getDoctorId());
         assertEquals(consultationHistoryDTO.getDate(), result.getDate());
         assertEquals(consultationHistoryDTO.getNotes(), result.getNotes());
-        verify(webClientBuilder).baseUrl(anyString());
         verify(webClient).get();
         verify(requestHeadersUriSpec).uri("/api/consultiation/" + consultationId);
     }
@@ -89,7 +82,6 @@ class ConsultationHistoryServiceTest {
         assertThrows(RuntimeException.class, () -> 
             consultationHistoryService.getConsultationHistoryById(consultationId)
         );
-        verify(webClientBuilder).baseUrl(anyString());
         verify(webClient).get();
         verify(requestHeadersUriSpec).uri("/api/consultiation/" + consultationId);
     }

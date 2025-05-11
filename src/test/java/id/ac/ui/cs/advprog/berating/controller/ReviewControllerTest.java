@@ -1,22 +1,17 @@
 package id.ac.ui.cs.advprog.berating.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import id.ac.ui.cs.advprog.berating.dto.BaseResponseDTO;
 import id.ac.ui.cs.advprog.berating.dto.ReviewRequest;
 import id.ac.ui.cs.advprog.berating.enums.ReviewStatus;
 import id.ac.ui.cs.advprog.berating.interfaces.ReviewService;
 import id.ac.ui.cs.advprog.berating.model.Review;
-import id.ac.ui.cs.advprog.berating.filter.JwtAuthFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
-import org.springframework.security.authentication.AuthenticationProvider;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,28 +19,18 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(ReviewController.class)
-public class ReviewControllerTest {
+class ReviewControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
+    @Mock
     private ReviewService reviewService;
-    
-    @MockBean
-    private JwtAuthFilter jwtAuthFilter;
-    
-    @MockBean
-    private AuthenticationProvider authenticationProvider;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @InjectMocks
+    private ReviewController reviewController;
 
     private UUID doctorId;
     private UUID patientId;
@@ -56,6 +41,8 @@ public class ReviewControllerTest {
 
     @BeforeEach
     void setUp() {
+        MockitoAnnotations.openMocks(this);
+        
         doctorId = UUID.randomUUID();
         patientId = UUID.randomUUID();
         consultationId = UUID.randomUUID();
@@ -81,54 +68,58 @@ public class ReviewControllerTest {
         reviewRequest.setComment("Pelayanan bagus");
     }
 
-    // POSITIVE CASES
-
     @Test
-    @WithMockUser
-    void testGetDoctorReviews_Success() throws Exception {
+    void testGetDoctorReviews_Success() {
         List<Review> reviews = Arrays.asList(review);
         when(reviewService.getDoctorReviews(doctorId)).thenReturn(reviews);
 
-        mockMvc.perform(get("/api/reviews/doctor/{doctorId}", doctorId)
-                .accept(MediaType.APPLICATION_JSON))
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$[0].id").value(reviewId.toString()))
-                .andExpect(jsonPath("$[0].doctorId").value(doctorId.toString()))
-                .andExpect(jsonPath("$[0].patientId").value(patientId.toString()))
-                .andExpect(jsonPath("$[0].rating").value(5))
-                .andExpect(jsonPath("$[0].comment").value("Pelayanan bagus"))
-                .andExpect(jsonPath("$[0].status").value("PENDING"));
+        ResponseEntity<BaseResponseDTO<List<Review>>> response = reviewController.getDoctorReviews(doctorId);
 
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(200, response.getBody().getStatus());
+        assertEquals("Success to retrieve doctor reviews.", response.getBody().getMessage());
+        assertEquals(reviews, response.getBody().getData());
         verify(reviewService).getDoctorReviews(doctorId);
     }
 
     @Test
-    @WithMockUser
-    void testCreateReview_Success() throws Exception {
+    void testCreateReview_Success() {
         when(reviewService.createReview(eq(consultationId), any(ReviewRequest.class))).thenReturn(review);
 
-        mockMvc.perform(post("/api/reviews/create/{consultationId}", consultationId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(reviewRequest))
-                .accept(MediaType.APPLICATION_JSON))
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isCreated())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").value(reviewId.toString()))
-                .andExpect(jsonPath("$.doctorId").value(doctorId.toString()))
-                .andExpect(jsonPath("$.patientId").value(patientId.toString()))
-                .andExpect(jsonPath("$.rating").value(5))
-                .andExpect(jsonPath("$.comment").value("Pelayanan bagus"))
-                .andExpect(jsonPath("$.status").value("PENDING"));
+        ResponseEntity<?> response = reviewController.createReview(consultationId, reviewRequest);
 
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        BaseResponseDTO<Review> responseBody = (BaseResponseDTO<Review>) response.getBody();
+        assertEquals(201, responseBody.getStatus());
+        assertEquals("Success to retrieve doctor reviews.", responseBody.getMessage());
+        assertEquals(review, responseBody.getData());
         verify(reviewService).createReview(eq(consultationId), any(ReviewRequest.class));
     }
 
     @Test
-    @WithMockUser
-    void testUpdateReviewStatus_Success() throws Exception {
+    void testCreateReview_InvalidRating() {
+        reviewRequest.setRating(6); // Invalid rating (should be 1-5)
+
+        ResponseEntity<?> response = reviewController.createReview(consultationId, reviewRequest);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Rating must be between 1 and 5", response.getBody());
+        verify(reviewService, never()).createReview(any(), any());
+    }
+
+    @Test
+    void testCreateReview_MissingRequiredField() {
+        reviewRequest.setRating(null); // Required field
+
+        ResponseEntity<?> response = reviewController.createReview(consultationId, reviewRequest);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Rating is required", response.getBody());
+        verify(reviewService, never()).createReview(any(), any());
+    }
+
+    @Test
+    void testUpdateReviewStatus_Success() {
         Review updatedReview = Review.builder()
                 .id(reviewId)
                 .doctorId(doctorId)
@@ -142,98 +133,56 @@ public class ReviewControllerTest {
 
         when(reviewService.updateReviewStatus(reviewId, ReviewStatus.APPROVED)).thenReturn(updatedReview);
 
-        mockMvc.perform(patch("/api/reviews/{reviewId}/status", reviewId)
-                .param("status", "APPROVED")
-                .accept(MediaType.APPLICATION_JSON))
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").value(reviewId.toString()))
-                .andExpect(jsonPath("$.status").value("APPROVED"));
+        ResponseEntity<?> response = reviewController.updateReviewStatus(reviewId, ReviewStatus.APPROVED);
 
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        BaseResponseDTO<Review> responseBody = (BaseResponseDTO<Review>) response.getBody();
+        assertEquals(200, responseBody.getStatus());
+        assertEquals("Success to retrieve doctor reviews.", responseBody.getMessage());
+        assertEquals(updatedReview, responseBody.getData());
         verify(reviewService).updateReviewStatus(reviewId, ReviewStatus.APPROVED);
     }
 
-    // NEGATIVE CASES
-
     @Test
-    @WithMockUser
-    void testCreateReview_InvalidRating() throws Exception {
-        reviewRequest.setRating(6); // Invalid rating (should be 1-5)
-
-        mockMvc.perform(post("/api/reviews/create/{consultationId}", consultationId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(reviewRequest)))
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isBadRequest());
-
-        verify(reviewService, never()).createReview(any(), any());
-    }
-
-    @Test
-    @WithMockUser
-    void testCreateReview_MissingRequiredField() throws Exception {
-        reviewRequest.setRating(null); // Required field
-
-        mockMvc.perform(post("/api/reviews/create/{consultationId}", consultationId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(reviewRequest)))
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isBadRequest());
-
-        verify(reviewService, never()).createReview(any(), any());
-    }
-
-    @Test
-    @WithMockUser
-    void testUpdateReviewStatus_InvalidStatus() throws Exception {
+    void testUpdateReviewStatus_InvalidStatus() {
         doThrow(new IllegalArgumentException("Invalid status")).when(reviewService)
                 .updateReviewStatus(any(UUID.class), any(ReviewStatus.class));
 
-        mockMvc.perform(patch("/api/reviews/{reviewId}/status", reviewId)
-                .param("status", "INVALID_STATUS"))
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isBadRequest());
+        ResponseEntity<?> response = reviewController.updateReviewStatus(reviewId, ReviewStatus.PENDING);
 
-        verify(reviewService).updateReviewStatus(any(), any());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Invalid status", response.getBody());
+        verify(reviewService).updateReviewStatus(reviewId, ReviewStatus.PENDING);
     }
 
     @Test
-    @WithMockUser
-    void testUpdateReviewStatus_ReviewNotFound() throws Exception {
+    void testUpdateReviewStatus_ReviewNotFound() {
         when(reviewService.updateReviewStatus(any(UUID.class), any(ReviewStatus.class)))
                 .thenThrow(new RuntimeException("Review not found"));
 
-        mockMvc.perform(patch("/api/reviews/{reviewId}/status", reviewId)
-                .param("status", "APPROVED"))
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isInternalServerError());
+        ResponseEntity<?> response = reviewController.updateReviewStatus(reviewId, ReviewStatus.APPROVED);
 
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals("Review not found", response.getBody());
         verify(reviewService).updateReviewStatus(reviewId, ReviewStatus.APPROVED);
     }
 
-    // CORNER CASES
-
     @Test
-    @WithMockUser
-    void testGetDoctorReviews_EmptyList() throws Exception {
+    void testGetDoctorReviews_EmptyList() {
         when(reviewService.getDoctorReviews(doctorId)).thenReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/api/reviews/doctor/{doctorId}", doctorId)
-                .accept(MediaType.APPLICATION_JSON))
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(content().json("[]"))
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$").isEmpty());
+        ResponseEntity<BaseResponseDTO<List<Review>>> response = reviewController.getDoctorReviews(doctorId);
 
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(200, response.getBody().getStatus());
+        assertEquals("Success to retrieve doctor reviews.", response.getBody().getMessage());
+        assertEquals(Collections.emptyList(), response.getBody().getData());
         verify(reviewService).getDoctorReviews(doctorId);
     }
 
-    @Test
-    @WithMockUser
-    void testCreateReview_WithoutComment() throws Exception {
+    @SuppressWarnings("unchecked")
+@Test
+    void testCreateReview_WithoutComment() {
         reviewRequest.setComment(null); // Comment is optional
         
         Review reviewWithoutComment = Review.builder()
@@ -248,22 +197,18 @@ public class ReviewControllerTest {
 
         when(reviewService.createReview(eq(consultationId), any(ReviewRequest.class))).thenReturn(reviewWithoutComment);
 
-        mockMvc.perform(post("/api/reviews/create/{consultationId}", consultationId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(reviewRequest))
-                .accept(MediaType.APPLICATION_JSON))
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isCreated())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").value(reviewId.toString()))
-                .andExpect(jsonPath("$.comment").doesNotExist());
+        ResponseEntity<?> response = reviewController.createReview(consultationId, reviewRequest);
 
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        BaseResponseDTO<Review> responseBody = (BaseResponseDTO<Review>) response.getBody();
+        assertEquals(201, responseBody.getStatus());
+        assertEquals("Success to retrieve doctor reviews.", responseBody.getMessage());
+        assertEquals(reviewWithoutComment, responseBody.getData());
         verify(reviewService).createReview(eq(consultationId), any(ReviewRequest.class));
     }
 
     @Test
-    @WithMockUser
-    void testCreateReview_MinimumRating() throws Exception {
+    void testCreateReview_MinimumRating() {
         reviewRequest.setRating(1); // Minimum valid rating
         
         Review reviewWithMinRating = Review.builder()
@@ -279,29 +224,27 @@ public class ReviewControllerTest {
 
         when(reviewService.createReview(eq(consultationId), any(ReviewRequest.class))).thenReturn(reviewWithMinRating);
 
-        mockMvc.perform(post("/api/reviews/create/{consultationId}", consultationId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(reviewRequest))
-                .accept(MediaType.APPLICATION_JSON))
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.rating").value(1));
+        ResponseEntity<?> response = reviewController.createReview(consultationId, reviewRequest);
 
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        BaseResponseDTO<Review> responseBody = (BaseResponseDTO<Review>) response.getBody();
+        assertEquals(201, responseBody.getStatus());
+        assertEquals("Success to retrieve doctor reviews.", responseBody.getMessage());
+        assertEquals(reviewWithMinRating, responseBody.getData());
         verify(reviewService).createReview(eq(consultationId), any(ReviewRequest.class));
     }
 
     @Test
-    @WithMockUser
-    void testUpdateReviewStatus_SameStatus() throws Exception {
+    void testUpdateReviewStatus_SameStatus() {
         when(reviewService.updateReviewStatus(reviewId, ReviewStatus.PENDING)).thenReturn(review);
 
-        mockMvc.perform(patch("/api/reviews/{reviewId}/status", reviewId)
-                .param("status", "PENDING")
-                .accept(MediaType.APPLICATION_JSON))
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("PENDING"));
+        ResponseEntity<?> response = reviewController.updateReviewStatus(reviewId, ReviewStatus.PENDING);
 
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        BaseResponseDTO<Review> responseBody = (BaseResponseDTO<Review>) response.getBody();
+        assertEquals(200, responseBody.getStatus());
+        assertEquals("Success to retrieve doctor reviews.", responseBody.getMessage());
+        assertEquals(review, responseBody.getData());
         verify(reviewService).updateReviewStatus(reviewId, ReviewStatus.PENDING);
     }
 }
