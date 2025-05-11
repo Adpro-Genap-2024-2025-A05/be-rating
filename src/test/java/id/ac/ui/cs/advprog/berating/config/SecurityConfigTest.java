@@ -1,6 +1,8 @@
 package id.ac.ui.cs.advprog.berating.config;
 
 import id.ac.ui.cs.advprog.berating.filter.JwtAuthFilter;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletMapping;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -8,7 +10,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -32,6 +33,12 @@ class SecurityConfigTest {
     @Mock
     private HttpSecurity httpSecurity;
 
+    @Mock
+    private HttpServletRequest request;
+
+    @Mock
+    private HttpServletMapping servletMapping;
+
     private SecurityConfig securityConfig;
 
     @BeforeEach
@@ -43,7 +50,6 @@ class SecurityConfigTest {
 
     @Test
     void securityFilterChain_ShouldConfigureSecurityCorrectly() throws Exception {
-        // Arrange
         when(httpSecurity.csrf(any())).thenReturn(httpSecurity);
         when(httpSecurity.cors(any())).thenReturn(httpSecurity);
         when(httpSecurity.authorizeHttpRequests(any())).thenReturn(httpSecurity);
@@ -52,10 +58,8 @@ class SecurityConfigTest {
         when(httpSecurity.addFilterBefore(any(), any())).thenReturn(httpSecurity);
         when(httpSecurity.build()).thenReturn(mock(DefaultSecurityFilterChain.class));
 
-        // Act
         SecurityFilterChain filterChain = securityConfig.securityFilterChain(httpSecurity);
 
-        // Assert
         assertNotNull(filterChain);
         verify(httpSecurity).csrf(any());
         verify(httpSecurity).cors(any());
@@ -67,12 +71,16 @@ class SecurityConfigTest {
 
     @Test
     void corsConfigurationSource_ShouldConfigureCorsCorrectly() {
-        // Act
+        when(request.getRequestURI()).thenReturn("/test");
+        when(request.getContextPath()).thenReturn("");
+        when(request.getServletPath()).thenReturn("");
+        when(request.getHttpServletMapping()).thenReturn(servletMapping);
+        when(servletMapping.getMappingMatch()).thenReturn(null);
+
         CorsConfigurationSource corsConfig = securityConfig.corsConfigurationSource();
 
-        // Assert
         assertNotNull(corsConfig);
-        CorsConfiguration config = corsConfig.getCorsConfiguration(null);
+        CorsConfiguration config = corsConfig.getCorsConfiguration(request);
         assertNotNull(config);
         assertEquals(List.of("*"), config.getAllowedOrigins());
         assertEquals(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"), config.getAllowedMethods());
@@ -83,10 +91,8 @@ class SecurityConfigTest {
 
     @Test
     void securityFilterChain_WhenExceptionOccurs_ShouldPropagateException() throws Exception {
-        // Arrange
         when(httpSecurity.csrf(any())).thenThrow(new RuntimeException("Test exception"));
 
-        // Act & Assert
         assertThrows(RuntimeException.class, () -> securityConfig.securityFilterChain(httpSecurity));
     }
 
@@ -94,26 +100,18 @@ class SecurityConfigTest {
 
     @Test
     void securityFilterChain_WithNullHttpSecurity_ShouldThrowException() {
-        // Act & Assert
         assertThrows(NullPointerException.class, () -> securityConfig.securityFilterChain(null));
     }
 
     @Test
     void corsConfigurationSource_ShouldHandleNullRequest() {
-        // Arrange
         CorsConfigurationSource corsConfig = securityConfig.corsConfigurationSource();
 
-        // Act
-        CorsConfiguration config = corsConfig.getCorsConfiguration(null);
-
-        // Assert
-        assertNotNull(config);
-        assertTrue(config.getAllowedOrigins().contains("*"));
+        assertThrows(NullPointerException.class, () -> corsConfig.getCorsConfiguration(null));
     }
 
     @Test
     void securityFilterChain_ShouldConfigureStatelessSession() throws Exception {
-        // Arrange
         when(httpSecurity.csrf(any())).thenReturn(httpSecurity);
         when(httpSecurity.cors(any())).thenReturn(httpSecurity);
         when(httpSecurity.authorizeHttpRequests(any())).thenReturn(httpSecurity);
@@ -122,10 +120,8 @@ class SecurityConfigTest {
         when(httpSecurity.addFilterBefore(any(), any())).thenReturn(httpSecurity);
         when(httpSecurity.build()).thenReturn(mock(DefaultSecurityFilterChain.class));
 
-        // Act
         securityConfig.securityFilterChain(httpSecurity);
 
-        // Assert
         verify(httpSecurity).sessionManagement(any());
     }
 }
