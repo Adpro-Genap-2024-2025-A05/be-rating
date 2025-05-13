@@ -132,6 +132,28 @@ public class ReviewServiceTest {
                         .findFirst()
                         .orElseThrow(() -> new ReviewNotFoundException("No current version found for review: " + reviewId));
             }
+
+            @Override
+            public Review deleteReview(UUID reviewId) {
+                Review review = reviews.stream()
+                        .filter(r -> r.getId().equals(reviewId))
+                        .findFirst()
+                        .orElseThrow(() -> new ReviewNotFoundException(reviewId));
+
+                List<Review> versionsToDelete = reviews.stream()
+                        .filter(r -> r.getParentId().equals(review.getParentId()))
+                        .toList();
+
+                reviews.removeAll(versionsToDelete);
+                return review;
+            }
+
+            @Override
+            public List<Review> getReviewUser(UUID patientId) {
+                return reviews.stream()
+                        .filter(r -> r.getPatientId().equals(patientId))
+                        .toList();
+            }
         };
     }
 
@@ -259,5 +281,64 @@ public class ReviewServiceTest {
     void testGetCurrentVersionNotFound() {
         assertThrows(ReviewNotFoundException.class, () -> 
             service.getCurrentVersion(UUID.randomUUID()));
+    }
+
+    @Test
+    void testGetReviewUser() {
+        // Create multiple reviews for the same patient
+        Review review1 = service.createReview(consultationId, reviewRequest);
+        
+        ReviewRequest reviewRequest2 = new ReviewRequest();
+        reviewRequest2.setDoctorId(UUID.randomUUID());
+        reviewRequest2.setPatientId(patientId);
+        reviewRequest2.setRating(4);
+        reviewRequest2.setComment("Second review");
+        Review review2 = service.createReview(UUID.randomUUID(), reviewRequest2);
+
+        // Create a review for a different patient
+        ReviewRequest reviewRequest3 = new ReviewRequest();
+        reviewRequest3.setDoctorId(doctorId);
+        reviewRequest3.setPatientId(UUID.randomUUID());
+        reviewRequest3.setRating(5);
+        reviewRequest3.setComment("Different patient review");
+        service.createReview(consultationId, reviewRequest3);
+
+        List<Review> userReviews = service.getReviewUser(patientId);
+
+        assertNotNull(userReviews);
+        assertEquals(2, userReviews.size());
+        assertTrue(userReviews.stream().allMatch(r -> r.getPatientId().equals(patientId)));
+        assertTrue(userReviews.contains(review1));
+        assertTrue(userReviews.contains(review2));
+    }
+
+    @Test
+    void testGetReviewUserEmptyList() {
+        List<Review> userReviews = service.getReviewUser(patientId);
+        
+        assertNotNull(userReviews);
+        assertTrue(userReviews.isEmpty());
+    }
+
+    @Test
+    void testGetReviewUserWithUpdatedReviews() {
+        // Create initial review
+        Review initialReview = service.createReview(consultationId, reviewRequest);
+        
+        // Update the review
+        ReviewRequest updateRequest = new ReviewRequest();
+        updateRequest.setDoctorId(doctorId);
+        updateRequest.setPatientId(patientId);
+        updateRequest.setRating(4);
+        updateRequest.setComment("Updated review");
+        Review updatedReview = service.updateReview(initialReview.getId(), updateRequest);
+
+        List<Review> userReviews = service.getReviewUser(patientId);
+
+        assertNotNull(userReviews);
+        assertEquals(2, userReviews.size()); // Should include both versions
+        assertTrue(userReviews.stream().allMatch(r -> r.getPatientId().equals(patientId)));
+        assertTrue(userReviews.contains(initialReview));
+        assertTrue(userReviews.contains(updatedReview));
     }
 }

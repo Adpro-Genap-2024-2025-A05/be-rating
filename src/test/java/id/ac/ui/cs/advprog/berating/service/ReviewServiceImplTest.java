@@ -455,4 +455,282 @@ public class ReviewServiceImplTest {
         
         assertTrue(exception.getMessage().contains(reviewId.toString()));
     }
+
+    @Test
+    void testDeleteReviewDeletesAllVersions() {
+        // Setup initial review
+        review = Review.builder()
+                .id(reviewId)
+                .doctorId(doctorId)
+                .patientId(patientId)
+                .consultationId(consultationId)
+                .rating(5)
+                .comment("Great service!")
+                .version(1)
+                .parentId(parentId)
+                .isCurrentVersion(true)
+                .build();
+
+        // Setup a second version
+        Review secondVersion = Review.builder()
+                .id(UUID.randomUUID())
+                .doctorId(doctorId)
+                .patientId(patientId)
+                .consultationId(consultationId)
+                .rating(4)
+                .comment("Updated review")
+                .version(2)
+                .parentId(parentId)
+                .isCurrentVersion(true)
+                .build();
+
+        // Setup a third version
+        Review thirdVersion = Review.builder()
+                .id(UUID.randomUUID())
+                .doctorId(doctorId)
+                .patientId(patientId)
+                .consultationId(consultationId)
+                .rating(3)
+                .comment("Final review")
+                .version(3)
+                .parentId(parentId)
+                .isCurrentVersion(true)
+                .build();
+
+        List<Review> allVersions = Arrays.asList(review, secondVersion, thirdVersion);
+
+        when(reviewRepository.findById(reviewId)).thenReturn(java.util.Optional.of(review));
+        when(reviewRepository.findAllVersionsByParentId(parentId)).thenReturn(allVersions);
+
+        Review result = reviewService.deleteReview(reviewId);
+
+        // Verify the result
+        assertNotNull(result);
+        assertEquals(reviewId, result.getId());
+        assertEquals(parentId, result.getParentId());
+
+        // Verify all versions were deleted
+        verify(reviewRepository, times(1)).findById(reviewId);
+        verify(reviewRepository, times(1)).findAllVersionsByParentId(parentId);
+        verify(reviewRepository, times(1)).delete(review);
+        verify(reviewRepository, times(1)).delete(secondVersion);
+        verify(reviewRepository, times(1)).delete(thirdVersion);
+    }
+
+    @Test
+    void testDeleteReviewNotFound() {
+        when(reviewRepository.findById(reviewId)).thenReturn(java.util.Optional.empty());
+
+        ReviewNotFoundException exception = assertThrows(ReviewNotFoundException.class, () -> 
+            reviewService.deleteReview(reviewId));
+        
+        assertTrue(exception.getMessage().contains(reviewId.toString()));
+        verify(reviewRepository, never()).findAllVersionsByParentId(any());
+        verify(reviewRepository, never()).delete(any());
+    }
+
+    @Test
+    void testDeleteReviewWithNoOtherVersions() {
+        // Setup single version review
+        review = Review.builder()
+                .id(reviewId)
+                .doctorId(doctorId)
+                .patientId(patientId)
+                .consultationId(consultationId)
+                .rating(5)
+                .comment("Great service!")
+                .version(1)
+                .parentId(parentId)
+                .isCurrentVersion(true)
+                .build();
+
+        when(reviewRepository.findById(reviewId)).thenReturn(java.util.Optional.of(review));
+        when(reviewRepository.findAllVersionsByParentId(parentId)).thenReturn(Collections.singletonList(review));
+
+        Review result = reviewService.deleteReview(reviewId);
+
+        // Verify the result
+        assertNotNull(result);
+        assertEquals(reviewId, result.getId());
+        assertEquals(parentId, result.getParentId());
+
+        // Verify only one version was deleted
+        verify(reviewRepository, times(1)).findById(reviewId);
+        verify(reviewRepository, times(1)).findAllVersionsByParentId(parentId);
+        verify(reviewRepository, times(1)).delete(review);
+    }
+
+    @Test
+    void testGetReviewUser() {
+        // Setup reviews for a patient
+        Review review1 = Review.builder()
+                .id(UUID.randomUUID())
+                .doctorId(doctorId)
+                .patientId(patientId)
+                .consultationId(consultationId)
+                .rating(5)
+                .comment("First review")
+                .version(1)
+                .parentId(UUID.randomUUID())
+                .isCurrentVersion(true)
+                .build();
+
+        Review review2 = Review.builder()
+                .id(UUID.randomUUID())
+                .doctorId(UUID.randomUUID())
+                .patientId(patientId)
+                .consultationId(UUID.randomUUID())
+                .rating(4)
+                .comment("Second review")
+                .version(1)
+                .parentId(UUID.randomUUID())
+                .isCurrentVersion(true)
+                .build();
+
+        List<Review> expectedReviews = Arrays.asList(review1, review2);
+        when(reviewRepository.findByPatientId(patientId)).thenReturn(expectedReviews);
+
+        List<Review> result = reviewService.getReviewUser(patientId);
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertTrue(result.contains(review1));
+        assertTrue(result.contains(review2));
+        verify(reviewRepository, times(1)).findByPatientId(patientId);
+    }
+
+    @Test
+    void testGetReviewUserEmptyList() {
+        when(reviewRepository.findByPatientId(patientId)).thenReturn(Collections.emptyList());
+
+        List<Review> result = reviewService.getReviewUser(patientId);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(reviewRepository, times(1)).findByPatientId(patientId);
+    }
+
+    @Test
+    void testDeleteReviewWithMultipleVersionsAndSomeNotCurrent() {
+        // Setup initial review
+        review = Review.builder()
+                .id(reviewId)
+                .doctorId(doctorId)
+                .patientId(patientId)
+                .consultationId(consultationId)
+                .rating(5)
+                .comment("First version")
+                .version(1)
+                .parentId(parentId)
+                .isCurrentVersion(false)
+                .build();
+
+        // Setup second version (not current)
+        Review secondVersion = Review.builder()
+                .id(UUID.randomUUID())
+                .doctorId(doctorId)
+                .patientId(patientId)
+                .consultationId(consultationId)
+                .rating(4)
+                .comment("Second version")
+                .version(2)
+                .parentId(parentId)
+                .isCurrentVersion(false)
+                .build();
+
+        // Setup third version (current)
+        Review thirdVersion = Review.builder()
+                .id(UUID.randomUUID())
+                .doctorId(doctorId)
+                .patientId(patientId)
+                .consultationId(consultationId)
+                .rating(3)
+                .comment("Current version")
+                .version(3)
+                .parentId(parentId)
+                .isCurrentVersion(true)
+                .build();
+
+        List<Review> allVersions = Arrays.asList(review, secondVersion, thirdVersion);
+
+        when(reviewRepository.findById(reviewId)).thenReturn(java.util.Optional.of(review));
+        when(reviewRepository.findAllVersionsByParentId(parentId)).thenReturn(allVersions);
+
+        Review result = reviewService.deleteReview(reviewId);
+
+        // Verify the result
+        assertNotNull(result);
+        assertEquals(reviewId, result.getId());
+        assertEquals(parentId, result.getParentId());
+        assertFalse(result.getIsCurrentVersion());
+
+        // Verify all versions were deleted regardless of their current status
+        verify(reviewRepository, times(1)).findById(reviewId);
+        verify(reviewRepository, times(1)).findAllVersionsByParentId(parentId);
+        verify(reviewRepository, times(1)).delete(review);
+        verify(reviewRepository, times(1)).delete(secondVersion);
+        verify(reviewRepository, times(1)).delete(thirdVersion);
+    }
+
+    @Test
+    void testDeleteReviewWithEmptyVersionList() {
+        // Setup review
+        review = Review.builder()
+                .id(reviewId)
+                .doctorId(doctorId)
+                .patientId(patientId)
+                .consultationId(consultationId)
+                .rating(5)
+                .comment("Test review")
+                .version(1)
+                .parentId(parentId)
+                .isCurrentVersion(true)
+                .build();
+
+        when(reviewRepository.findById(reviewId)).thenReturn(java.util.Optional.of(review));
+        when(reviewRepository.findAllVersionsByParentId(parentId)).thenReturn(Collections.emptyList());
+
+        Review result = reviewService.deleteReview(reviewId);
+
+        // Verify the result
+        assertNotNull(result);
+        assertEquals(reviewId, result.getId());
+        assertEquals(parentId, result.getParentId());
+
+        // Verify repository calls
+        verify(reviewRepository, times(1)).findById(reviewId);
+        verify(reviewRepository, times(1)).findAllVersionsByParentId(parentId);
+        verify(reviewRepository, never()).delete(any());
+    }
+
+    @Test
+    void testDeleteReviewWithNullParentId() {
+        // Setup review with null parentId
+        review = Review.builder()
+                .id(reviewId)
+                .doctorId(doctorId)
+                .patientId(patientId)
+                .consultationId(consultationId)
+                .rating(5)
+                .comment("Test review")
+                .version(1)
+                .parentId(null)
+                .isCurrentVersion(true)
+                .build();
+
+        when(reviewRepository.findById(reviewId)).thenReturn(java.util.Optional.of(review));
+        when(reviewRepository.findAllVersionsByParentId(null)).thenReturn(Collections.singletonList(review));
+
+        Review result = reviewService.deleteReview(reviewId);
+
+        // Verify the result
+        assertNotNull(result);
+        assertEquals(reviewId, result.getId());
+        assertNull(result.getParentId());
+
+        // Verify repository calls
+        verify(reviewRepository, times(1)).findById(reviewId);
+        verify(reviewRepository, times(1)).findAllVersionsByParentId(null);
+        verify(reviewRepository, times(1)).delete(review);
+    }
 }

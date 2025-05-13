@@ -154,4 +154,77 @@ public class ReviewRepositoryTest {
         assertEquals(newParentId, retrievedReview.getParentId());
         assertTrue(retrievedReview.getIsCurrentVersion());
     }
+
+    @Test
+    void testFindByPatientId() {
+        List<Review> reviews = reviewRepository.findByPatientId(patientId);
+        
+        assertNotNull(reviews);
+        assertEquals(3, reviews.size());
+        assertTrue(reviews.stream().allMatch(r -> r.getPatientId().equals(patientId)));
+    }
+
+    @Test
+    void testFindByPatientIdWithNoResults() {
+        List<Review> reviews = reviewRepository.findByPatientId(UUID.randomUUID());
+        
+        assertNotNull(reviews);
+        assertTrue(reviews.isEmpty());
+    }
+
+    @Test
+    void testFindByPatientIdWithMultipleReviews() {
+        // Create a new review for the same patient but different doctor
+        Review review4 = Review.builder()
+                .doctorId(UUID.randomUUID())
+                .patientId(patientId)
+                .consultationId(UUID.randomUUID())
+                .rating(5)
+                .comment("Fourth review")
+                .version(1)
+                .parentId(UUID.randomUUID())
+                .isCurrentVersion(true)
+                .build();
+
+        entityManager.persist(review4);
+        entityManager.flush();
+
+        List<Review> reviews = reviewRepository.findByPatientId(patientId);
+        
+        assertNotNull(reviews);
+        assertEquals(4, reviews.size());
+        assertTrue(reviews.stream().allMatch(r -> r.getPatientId().equals(patientId)));
+        assertTrue(reviews.contains(review4));
+    }
+
+    @Test
+    void testFindByPatientIdWithDifferentPatients() {
+        // Create a review for a different patient
+        UUID differentPatientId = UUID.randomUUID();
+        Review review4 = Review.builder()
+                .doctorId(doctorId)
+                .patientId(differentPatientId)
+                .consultationId(UUID.randomUUID())
+                .rating(5)
+                .comment("Different patient review")
+                .version(1)
+                .parentId(UUID.randomUUID())
+                .isCurrentVersion(true)
+                .build();
+
+        entityManager.persist(review4);
+        entityManager.flush();
+
+        // Test original patient's reviews
+        List<Review> originalPatientReviews = reviewRepository.findByPatientId(patientId);
+        assertNotNull(originalPatientReviews);
+        assertEquals(3, originalPatientReviews.size());
+        assertTrue(originalPatientReviews.stream().allMatch(r -> r.getPatientId().equals(patientId)));
+
+        // Test different patient's reviews
+        List<Review> differentPatientReviews = reviewRepository.findByPatientId(differentPatientId);
+        assertNotNull(differentPatientReviews);
+        assertEquals(1, differentPatientReviews.size());
+        assertTrue(differentPatientReviews.stream().allMatch(r -> r.getPatientId().equals(differentPatientId)));
+    }
 }
