@@ -56,18 +56,6 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
-    public Review getCurrentVersion(UUID reviewId) {
-        Review review = reviewRepository.findById(reviewId)
-            .orElseThrow(() -> new ReviewNotFoundException(reviewId));
-
-        if (review.getIsCurrentVersion()) {
-            return review;
-        }
-
-        return reviewRepository.findCurrentVersionByParentId(review.getParentId());
-    }
-
-    @Override
     public Review deleteReview(UUID reviewId) {
         Review review = reviewRepository.findById(reviewId)
             .orElseThrow(() -> new ReviewNotFoundException(reviewId));

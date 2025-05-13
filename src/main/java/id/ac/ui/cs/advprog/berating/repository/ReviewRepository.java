@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import id.ac.ui.cs.advprog.berating.model.Review;
 
 public interface ReviewRepository extends JpaRepository<Review, UUID> {
+    @Query("SELECT r FROM Review r WHERE r.doctorId = ?1 AND r.isCurrentVersion = true")
     List<Review> findByDoctorId(UUID doctorId);
     
     @Query("SELECT r FROM Review r WHERE r.parentId = ?1 ORDER BY r.version")
@@ -17,5 +18,6 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
     @Query("SELECT r FROM Review r WHERE r.parentId = ?1 AND r.isCurrentVersion = true")
     Review findCurrentVersionByParentId(UUID parentId);
 
+    @Query("SELECT r FROM Review r WHERE r.patientId = ?1 AND r.isCurrentVersion = true")
     List<Review> findByPatientId(UUID patientId);
 }

@@ -41,14 +41,6 @@ public interface ReviewService {
     List<Review> getReviewHistory(UUID reviewId);
 
     /**
-     * Gets the current version of a review
-     * @param reviewId The ID of any version of the review
-     * @return The current version of the review
-     * @throws ReviewNotFoundException if the review is not found
-     */
-    Review getCurrentVersion(UUID reviewId);
-
-    /**
      * Deletes a review
      * @param reviewId The ID of the review to delete
      * @throws ReviewNotFoundException if the review is not found
