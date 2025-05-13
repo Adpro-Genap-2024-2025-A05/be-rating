@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import id.ac.ui.cs.advprog.berating.enums.ReviewStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -49,9 +48,6 @@ public class Review {
 
     @Column(name="comment", length = 500)
     private String comment;
-
-    @Column(name="status", nullable = false)
-    private ReviewStatus status;
 
     @CreationTimestamp
     @Temporal(TemporalType.TIMESTAMP)

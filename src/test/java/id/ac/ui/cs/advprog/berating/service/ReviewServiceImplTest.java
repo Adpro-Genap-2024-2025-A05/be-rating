@@ -7,7 +7,6 @@ import static org.mockito.Mockito.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -18,10 +17,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import id.ac.ui.cs.advprog.berating.dto.ReviewRequest;
-import id.ac.ui.cs.advprog.berating.enums.ReviewStatus;
 import id.ac.ui.cs.advprog.berating.model.Review;
 import id.ac.ui.cs.advprog.berating.repository.ReviewRepository;
-import jakarta.persistence.EntityNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 public class ReviewServiceImplTest {
@@ -65,7 +62,6 @@ public class ReviewServiceImplTest {
                 .consultationId(consultationId)
                 .rating(5)
                 .comment("Great service!")
-                .status(ReviewStatus.PENDING)
                 .build();
     }
 
@@ -83,7 +79,6 @@ public class ReviewServiceImplTest {
         assertEquals(consultationId, result.getConsultationId());
         assertEquals(5, result.getRating());
         assertEquals("Great service!", result.getComment());
-        assertEquals(ReviewStatus.PENDING, result.getStatus());
 
         verify(reviewRepository).save(any(Review.class));
     }
@@ -97,7 +92,6 @@ public class ReviewServiceImplTest {
                 .patientId(patientId)
                 .consultationId(consultationId)
                 .rating(5)
-                .status(ReviewStatus.PENDING)
                 .build();
 
         when(reviewRepository.save(any(Review.class))).thenReturn(reviewWithoutComment);
@@ -111,7 +105,6 @@ public class ReviewServiceImplTest {
         assertEquals(consultationId, result.getConsultationId());
         assertEquals(5, result.getRating());
         assertNull(result.getComment());
-        assertEquals(ReviewStatus.PENDING, result.getStatus());
 
         verify(reviewRepository).save(any(Review.class));
     }
@@ -130,68 +123,6 @@ public class ReviewServiceImplTest {
     }
 
     @Test
-    void testUpdateReviewStatusToApproved() {
-        Review updatedReview = Review.builder()
-                .id(reviewId)
-                .doctorId(doctorId)
-                .patientId(patientId)
-                .consultationId(consultationId)
-                .rating(5)
-                .comment("Great service!")
-                .status(ReviewStatus.APPROVED)
-                .build();
-
-        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
-        when(reviewRepository.save(any(Review.class))).thenReturn(updatedReview);
-
-        Review result = reviewService.updateReviewStatus(reviewId, ReviewStatus.APPROVED);
-
-        assertNotNull(result);
-        assertEquals(reviewId, result.getId());
-        assertEquals(ReviewStatus.APPROVED, result.getStatus());
-        verify(reviewRepository).findById(reviewId);
-        verify(reviewRepository).save(any(Review.class));
-    }
-
-    @Test
-    void testUpdateReviewStatusToRejected() {
-        Review updatedReview = Review.builder()
-                .id(reviewId)
-                .doctorId(doctorId)
-                .patientId(patientId)
-                .consultationId(consultationId)
-                .rating(5)
-                .comment("Great service!")
-                .status(ReviewStatus.REJECTED)
-                .build();
-
-        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
-        when(reviewRepository.save(any(Review.class))).thenReturn(updatedReview);
-
-        Review result = reviewService.updateReviewStatus(reviewId, ReviewStatus.REJECTED);
-
-        assertNotNull(result);
-        assertEquals(reviewId, result.getId());
-        assertEquals(ReviewStatus.REJECTED, result.getStatus());
-        verify(reviewRepository).findById(reviewId);
-        verify(reviewRepository).save(any(Review.class));
-    }
-
-    @Test
-    void testUpdateReviewStatusReviewNotFound() {
-        when(reviewRepository.findById(reviewId)).thenReturn(Optional.empty());
-
-        EntityNotFoundException exception = assertThrows(
-            EntityNotFoundException.class,
-            () -> reviewService.updateReviewStatus(reviewId, ReviewStatus.APPROVED)
-        );
-        assertEquals("Review not found", exception.getMessage());
-
-        verify(reviewRepository).findById(reviewId);
-        verify(reviewRepository, never()).save(any(Review.class));
-    }
-
-    @Test
     void testGetDoctorReviewsEmptyList() {
         when(reviewRepository.findByDoctorId(doctorId)).thenReturn(Collections.emptyList());
 
@@ -200,20 +131,6 @@ public class ReviewServiceImplTest {
         assertNotNull(result);
         assertTrue(result.isEmpty());
         verify(reviewRepository).findByDoctorId(doctorId);
-    }
-
-    @Test
-    void testUpdateReviewStatusToSameStatus() {
-        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
-        when(reviewRepository.save(any(Review.class))).thenReturn(review);
-
-        Review result = reviewService.updateReviewStatus(reviewId, ReviewStatus.PENDING);
-
-        assertNotNull(result);
-        assertEquals(reviewId, result.getId());
-        assertEquals(ReviewStatus.PENDING, result.getStatus());
-        verify(reviewRepository).findById(reviewId);
-        verify(reviewRepository).save(any(Review.class));
     }
 
     @Test
@@ -226,7 +143,6 @@ public class ReviewServiceImplTest {
                 .consultationId(consultationId)
                 .rating(1)
                 .comment("Great service!")
-                .status(ReviewStatus.PENDING)
                 .build();
 
         when(reviewRepository.save(any(Review.class))).thenReturn(reviewWithMinRating);
@@ -248,7 +164,6 @@ public class ReviewServiceImplTest {
                 .consultationId(consultationId)
                 .rating(5)
                 .comment("Great service!")
-                .status(ReviewStatus.PENDING)
                 .build();
 
         when(reviewRepository.save(any(Review.class))).thenReturn(reviewWithMaxRating);

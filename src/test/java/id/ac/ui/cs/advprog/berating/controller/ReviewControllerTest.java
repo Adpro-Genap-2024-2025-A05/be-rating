@@ -2,10 +2,8 @@ package id.ac.ui.cs.advprog.berating.controller;
 
 import id.ac.ui.cs.advprog.berating.dto.BaseResponseDTO;
 import id.ac.ui.cs.advprog.berating.dto.ReviewRequest;
-import id.ac.ui.cs.advprog.berating.enums.ReviewStatus;
 import id.ac.ui.cs.advprog.berating.interfaces.ReviewService;
 import id.ac.ui.cs.advprog.berating.model.Review;
-import id.ac.ui.cs.advprog.berating.exception.ReviewNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -21,7 +19,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -58,7 +55,6 @@ class ReviewControllerTest {
                 .consultationId(consultationId)
                 .rating(5)
                 .comment("Pelayanan bagus")
-                .status(ReviewStatus.PENDING)
                 .createdAt(new Date())
                 .build();
 
@@ -121,57 +117,6 @@ class ReviewControllerTest {
     }
 
     @Test
-    void testUpdateReviewStatus_Success() {
-        Review updatedReview = Review.builder()
-                .id(reviewId)
-                .doctorId(doctorId)
-                .patientId(patientId)
-                .consultationId(consultationId)
-                .rating(5)
-                .comment("Pelayanan bagus")
-                .status(ReviewStatus.APPROVED)
-                .createdAt(new Date())
-                .build();
-
-        when(reviewService.updateReviewStatus(reviewId, ReviewStatus.APPROVED)).thenReturn(updatedReview);
-
-        ResponseEntity<?> response = reviewController.updateReviewStatus(reviewId, ReviewStatus.APPROVED);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        BaseResponseDTO<Review> responseBody = (BaseResponseDTO<Review>) response.getBody();
-        assertEquals(200, responseBody.getStatus());
-        assertEquals("Success to retrieve doctor reviews.", responseBody.getMessage());
-        assertEquals(updatedReview, responseBody.getData());
-        verify(reviewService).updateReviewStatus(reviewId, ReviewStatus.APPROVED);
-    }
-
-    @Test
-    void testUpdateReviewStatus_InvalidStatus() {
-        doThrow(new IllegalArgumentException("Invalid status")).when(reviewService)
-                .updateReviewStatus(any(UUID.class), any(ReviewStatus.class));
-
-        ResponseEntity<?> response = reviewController.updateReviewStatus(reviewId, ReviewStatus.PENDING);
-
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Invalid status", response.getBody());
-        verify(reviewService).updateReviewStatus(reviewId, ReviewStatus.PENDING);
-    }
-
-    @Test
-    void testUpdateReviewStatus_ReviewNotFound() {
-        when(reviewService.updateReviewStatus(any(UUID.class), any(ReviewStatus.class)))
-                .thenReturn(null);
-
-        ReviewNotFoundException exception = assertThrows(
-            ReviewNotFoundException.class,
-            () -> reviewController.updateReviewStatus(reviewId, ReviewStatus.APPROVED)
-        );
-
-        assertEquals("Review not found with id: " + reviewId, exception.getMessage());
-        verify(reviewService).updateReviewStatus(reviewId, ReviewStatus.APPROVED);
-    }
-
-    @Test
     void testGetDoctorReviews_EmptyList() {
         when(reviewService.getDoctorReviews(doctorId)).thenReturn(Collections.emptyList());
 
@@ -195,7 +140,6 @@ class ReviewControllerTest {
                 .patientId(patientId)
                 .consultationId(consultationId)
                 .rating(5)
-                .status(ReviewStatus.PENDING)
                 .createdAt(new Date())
                 .build();
 
@@ -222,7 +166,6 @@ class ReviewControllerTest {
                 .consultationId(consultationId)
                 .rating(1)
                 .comment("Pelayanan bagus")
-                .status(ReviewStatus.PENDING)
                 .createdAt(new Date())
                 .build();
 
@@ -236,29 +179,6 @@ class ReviewControllerTest {
         assertEquals("Success to retrieve doctor reviews.", responseBody.getMessage());
         assertEquals(reviewWithMinRating, responseBody.getData());
         verify(reviewService).createReview(eq(consultationId), any(ReviewRequest.class));
-    }
-
-    @Test
-    void testUpdateReviewStatus_SameStatus() {
-        when(reviewService.updateReviewStatus(reviewId, ReviewStatus.PENDING)).thenReturn(review);
-
-        ResponseEntity<?> response = reviewController.updateReviewStatus(reviewId, ReviewStatus.PENDING);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        BaseResponseDTO<Review> responseBody = (BaseResponseDTO<Review>) response.getBody();
-        assertEquals(200, responseBody.getStatus());
-        assertEquals("Success to retrieve doctor reviews.", responseBody.getMessage());
-        assertEquals(review, responseBody.getData());
-        verify(reviewService).updateReviewStatus(reviewId, ReviewStatus.PENDING);
-    }
-
-    @Test
-    void testUpdateReviewStatus_NullStatus() {
-        ResponseEntity<?> response = reviewController.updateReviewStatus(reviewId, null);
-
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Invalid status", response.getBody());
-        verify(reviewService, never()).updateReviewStatus(any(), any());
     }
 
     @Test

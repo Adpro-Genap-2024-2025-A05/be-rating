@@ -8,7 +8,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 import id.ac.ui.cs.advprog.berating.dto.ReviewRequest;
-import id.ac.ui.cs.advprog.berating.enums.ReviewStatus;
 import id.ac.ui.cs.advprog.berating.model.Review;
 
 public class ReviewServiceTest {
@@ -26,11 +25,6 @@ public class ReviewServiceTest {
                 public List<Review> getDoctorReviews(UUID doctorId) {
                     return null;
                 }
-
-                @Override
-                public Review updateReviewStatus(UUID reviewId, ReviewStatus status) {
-                    return null;
-                }
             };
         });
     }
@@ -39,14 +33,12 @@ public class ReviewServiceTest {
     void testMethodSignatures() throws NoSuchMethodException {
         ReviewService.class.getMethod("createReview", UUID.class, ReviewRequest.class);
         ReviewService.class.getMethod("getDoctorReviews", UUID.class);
-        ReviewService.class.getMethod("updateReviewStatus", UUID.class, ReviewStatus.class);
     }
 
     @Test
     void testReturnTypes() throws NoSuchMethodException {
         assertEquals(Review.class, ReviewService.class.getMethod("createReview", UUID.class, ReviewRequest.class).getReturnType());
         assertEquals(List.class, ReviewService.class.getMethod("getDoctorReviews", UUID.class).getReturnType());
-        assertEquals(Review.class, ReviewService.class.getMethod("updateReviewStatus", UUID.class, ReviewStatus.class).getReturnType());
     }
 
     @Test
@@ -59,11 +51,6 @@ public class ReviewServiceTest {
         assertArrayEquals(
             new Class<?>[] { UUID.class },
             ReviewService.class.getMethod("getDoctorReviews", UUID.class).getParameterTypes()
-        );
-        
-        assertArrayEquals(
-            new Class<?>[] { UUID.class, ReviewStatus.class },
-            ReviewService.class.getMethod("updateReviewStatus", UUID.class, ReviewStatus.class).getParameterTypes()
         );
     }
 }

@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
-import id.ac.ui.cs.advprog.berating.enums.ReviewStatus;
 import id.ac.ui.cs.advprog.berating.model.Review;
 
 @DataJpaTest
@@ -45,7 +44,6 @@ public class ReviewRepositoryTest {
                 .consultationId(consultationId)
                 .rating(5)
                 .comment("Great service!")
-                .status(ReviewStatus.PENDING)
                 .build();
 
         review2 = Review.builder()
@@ -54,7 +52,6 @@ public class ReviewRepositoryTest {
                 .consultationId(consultationId)
                 .rating(4)
                 .comment("Good service")
-                .status(ReviewStatus.APPROVED)
                 .build();
 
         review3 = Review.builder()
@@ -63,7 +60,6 @@ public class ReviewRepositoryTest {
                 .consultationId(consultationId)
                 .rating(3)
                 .comment("Average service")
-                .status(ReviewStatus.REJECTED)
                 .build();
 
         entityManager.persist(review1);
@@ -98,7 +94,6 @@ public class ReviewRepositoryTest {
                 .consultationId(consultationId)
                 .rating(5)
                 .comment("New review")
-                .status(ReviewStatus.PENDING)
                 .build();
 
         Review savedReview = reviewRepository.save(newReview);
@@ -151,15 +146,5 @@ public class ReviewRepositoryTest {
         assertNotNull(updatedReview);
         assertEquals(4, updatedReview.getRating());
         assertEquals("Updated comment", updatedReview.getComment());
-    }
-
-    @Test
-    void testFindByDoctorIdWithDifferentStatuses() {
-        List<Review> reviews = reviewRepository.findByDoctorId(doctorId1);
-        
-        assertNotNull(reviews);
-        assertEquals(2, reviews.size());
-        assertTrue(reviews.stream().anyMatch(review -> review.getStatus() == ReviewStatus.PENDING));
-        assertTrue(reviews.stream().anyMatch(review -> review.getStatus() == ReviewStatus.APPROVED));
     }
 }

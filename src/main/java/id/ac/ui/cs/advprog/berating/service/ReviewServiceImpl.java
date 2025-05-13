@@ -5,7 +5,6 @@ import id.ac.ui.cs.advprog.berating.interfaces.ReviewService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import id.ac.ui.cs.advprog.berating.model.Review;
-import id.ac.ui.cs.advprog.berating.enums.ReviewStatus;
 import id.ac.ui.cs.advprog.berating.repository.ReviewRepository;
 
 import java.util.List;
@@ -31,21 +30,12 @@ public class ReviewServiceImpl implements ReviewService{
         return reviewRepository.findByDoctorId(doctorId);
     }
 
-    @Override
-    public Review updateReviewStatus(UUID reviewId, ReviewStatus status) {
-        Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new EntityNotFoundException("Review not found"));
-        review.setStatus(status);
-        return reviewRepository.save(review);
-    }
-
     private Review createReviewEntity(UUID consultationId, ReviewRequest reviewRequest) {
         Review.ReviewBuilder builder = Review.builder()
                 .consultationId(consultationId)
                 .doctorId(reviewRequest.getDoctorId())
                 .patientId(reviewRequest.getPatientId())
-                .rating(reviewRequest.getRating())
-                .status(ReviewStatus.PENDING);
+                .rating(reviewRequest.getRating());
 
         if (reviewRequest.getComment() != null) {
             builder.comment(reviewRequest.getComment());

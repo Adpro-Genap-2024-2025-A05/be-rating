@@ -12,7 +12,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import id.ac.ui.cs.advprog.berating.enums.ReviewStatus;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -27,7 +26,6 @@ public class ReviewTest {
     private UUID consultationId;
     private Integer rating;
     private String comment;
-    private ReviewStatus status;
     private Date createdAt;
     private Date updatedAt;
     private Validator validator;
@@ -43,7 +41,6 @@ public class ReviewTest {
         consultationId = UUID.randomUUID();
         rating = 5;
         comment = "Great service!";
-        status = ReviewStatus.PENDING;
         createdAt = new Date();
         updatedAt = new Date();
         
@@ -61,14 +58,13 @@ public class ReviewTest {
         assertNull(review.getConsultationId());
         assertNull(review.getRating());
         assertNull(review.getComment());
-        assertNull(review.getStatus());
         assertNull(review.getCreatedAt());
         assertNull(review.getUpdatedAt());
     }
 
     @Test
     void testAllArgsConstructor() {
-        Review review = new Review(id, patientId, doctorId, consultationId, rating, comment, status, createdAt, updatedAt);
+        Review review = new Review(id, patientId, doctorId, consultationId, rating, comment, createdAt, updatedAt);
         
         assertEquals(id, review.getId());
         assertEquals(patientId, review.getPatientId());
@@ -76,7 +72,6 @@ public class ReviewTest {
         assertEquals(consultationId, review.getConsultationId());
         assertEquals(rating, review.getRating());
         assertEquals(comment, review.getComment());
-        assertEquals(status, review.getStatus());
         assertEquals(createdAt, review.getCreatedAt());
         assertEquals(updatedAt, review.getUpdatedAt());
     }
@@ -90,7 +85,6 @@ public class ReviewTest {
                 .consultationId(consultationId)
                 .rating(rating)
                 .comment(comment)
-                .status(status)
                 .createdAt(createdAt)
                 .updatedAt(updatedAt)
                 .build();
@@ -101,7 +95,6 @@ public class ReviewTest {
         assertEquals(consultationId, review.getConsultationId());
         assertEquals(rating, review.getRating());
         assertEquals(comment, review.getComment());
-        assertEquals(status, review.getStatus());
         assertEquals(createdAt, review.getCreatedAt());
         assertEquals(updatedAt, review.getUpdatedAt());
     }
@@ -116,7 +109,6 @@ public class ReviewTest {
         review.setConsultationId(consultationId);
         review.setRating(rating);
         review.setComment(comment);
-        review.setStatus(status);
         review.setCreatedAt(createdAt);
         review.setUpdatedAt(updatedAt);
 
@@ -126,7 +118,6 @@ public class ReviewTest {
         assertEquals(consultationId, review.getConsultationId());
         assertEquals(rating, review.getRating());
         assertEquals(comment, review.getComment());
-        assertEquals(status, review.getStatus());
         assertEquals(createdAt, review.getCreatedAt());
         assertEquals(updatedAt, review.getUpdatedAt());
     }
@@ -151,8 +142,8 @@ public class ReviewTest {
 
     @Test
     void testEqualsAndHashCode() {
-        Review review1 = new Review(id, patientId, doctorId, consultationId, rating, comment, status, createdAt, updatedAt);
-        Review review2 = new Review(id, patientId, doctorId, consultationId, rating, comment, status, createdAt, updatedAt);
+        Review review1 = new Review(id, patientId, doctorId, consultationId, rating, comment, createdAt, updatedAt);
+        Review review2 = new Review(id, patientId, doctorId, consultationId, rating, comment, createdAt, updatedAt);
         
         assertNotEquals(review1, review2);
         assertNotEquals(review1.hashCode(), review2.hashCode());
@@ -160,7 +151,7 @@ public class ReviewTest {
 
     @Test
     void testToString() {
-        Review review = new Review(id, patientId, doctorId, consultationId, rating, comment, status, createdAt, updatedAt);
+        Review review = new Review(id, patientId, doctorId, consultationId, rating, comment, createdAt, updatedAt);
         String toString = review.toString();
 
         assertNotNull(toString);
