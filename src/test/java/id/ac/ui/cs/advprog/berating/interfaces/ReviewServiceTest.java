@@ -2,55 +2,262 @@ package id.ac.ui.cs.advprog.berating.interfaces;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import id.ac.ui.cs.advprog.berating.dto.ReviewRequest;
+import id.ac.ui.cs.advprog.berating.exception.ReviewNotFoundException;
 import id.ac.ui.cs.advprog.berating.model.Review;
 
 public class ReviewServiceTest {
-    
-    @Test
-    void testInterfaceContract() {
-        assertDoesNotThrow(() -> {
-            ReviewService service = new ReviewService() {
-                @Override
-                public Review createReview(UUID consultationId, ReviewRequest reviewRequest) {
-                    return null;
+
+    private ReviewService service;
+    private UUID consultationId;
+    private UUID doctorId;
+    private UUID patientId;
+    private UUID reviewId;
+    private ReviewRequest reviewRequest;
+    private Review review;
+
+    @BeforeEach
+    void setUp() {
+        consultationId = UUID.randomUUID();
+        doctorId = UUID.randomUUID();
+        patientId = UUID.randomUUID();
+        reviewId = UUID.randomUUID();
+
+        reviewRequest = new ReviewRequest();
+        reviewRequest.setDoctorId(doctorId);
+        reviewRequest.setPatientId(patientId);
+        reviewRequest.setRating(5);
+        reviewRequest.setComment("Great service!");
+
+        review = Review.builder()
+                .id(reviewId)
+                .doctorId(doctorId)
+                .patientId(patientId)
+                .consultationId(consultationId)
+                .rating(5)
+                .comment("Great service!")
+                .version(1)
+                .parentId(reviewId)
+                .isCurrentVersion(true)
+                .build();
+
+        // Create a mock implementation of ReviewService
+        service = new ReviewService() {
+            private final List<Review> reviews = new ArrayList<>();
+
+            @Override
+            public Review createReview(UUID consultationId, ReviewRequest reviewRequest) {
+                Review newReview = Review.builder()
+                        .id(UUID.randomUUID())
+                        .doctorId(reviewRequest.getDoctorId())
+                        .patientId(reviewRequest.getPatientId())
+                        .consultationId(consultationId)
+                        .rating(reviewRequest.getRating())
+                        .comment(reviewRequest.getComment())
+                        .version(1)
+                        .parentId(UUID.randomUUID())
+                        .isCurrentVersion(true)
+                        .build();
+                reviews.add(newReview);
+                return newReview;
+            }
+
+            @Override
+            public List<Review> getDoctorReviews(UUID doctorId) {
+                return reviews.stream()
+                        .filter(r -> r.getDoctorId().equals(doctorId))
+                        .toList();
+            }
+
+            @Override
+            public Review updateReview(UUID reviewId, ReviewRequest reviewRequest) {
+                Review oldReview = reviews.stream()
+                        .filter(r -> r.getId().equals(reviewId))
+                        .findFirst()
+                        .orElseThrow(() -> new ReviewNotFoundException(reviewId));
+
+                if (!oldReview.getIsCurrentVersion()) {
+                    throw new IllegalStateException("Cannot update a review that is not the current version");
                 }
 
-                @Override
-                public List<Review> getDoctorReviews(UUID doctorId) {
-                    return null;
+                oldReview.setIsCurrentVersion(false);
+                Review newReview = Review.builder()
+                        .id(UUID.randomUUID())
+                        .doctorId(reviewRequest.getDoctorId())
+                        .patientId(reviewRequest.getPatientId())
+                        .consultationId(oldReview.getConsultationId())
+                        .rating(reviewRequest.getRating())
+                        .comment(reviewRequest.getComment())
+                        .version(oldReview.getVersion() + 1)
+                        .parentId(oldReview.getParentId())
+                        .isCurrentVersion(true)
+                        .build();
+                reviews.add(newReview);
+                return newReview;
+            }
+
+            @Override
+            public List<Review> getReviewHistory(UUID reviewId) {
+                Review review = reviews.stream()
+                        .filter(r -> r.getId().equals(reviewId))
+                        .findFirst()
+                        .orElseThrow(() -> new ReviewNotFoundException(reviewId));
+
+                return reviews.stream()
+                        .filter(r -> r.getParentId().equals(review.getParentId()))
+                        .sorted((r1, r2) -> r1.getVersion().compareTo(r2.getVersion()))
+                        .toList();
+            }
+
+            @Override
+            public Review getCurrentVersion(UUID reviewId) {
+                Review review = reviews.stream()
+                        .filter(r -> r.getId().equals(reviewId))
+                        .findFirst()
+                        .orElseThrow(() -> new ReviewNotFoundException(reviewId));
+
+                if (review.getIsCurrentVersion()) {
+                    return review;
                 }
-            };
-        });
+
+                return reviews.stream()
+                        .filter(r -> r.getParentId().equals(review.getParentId()) && r.getIsCurrentVersion())
+                        .findFirst()
+                        .orElseThrow(() -> new ReviewNotFoundException("No current version found for review: " + reviewId));
+            }
+        };
     }
 
     @Test
-    void testMethodSignatures() throws NoSuchMethodException {
-        ReviewService.class.getMethod("createReview", UUID.class, ReviewRequest.class);
-        ReviewService.class.getMethod("getDoctorReviews", UUID.class);
+    void testCreateReview() {
+        Review result = service.createReview(consultationId, reviewRequest);
+
+        assertNotNull(result);
+        assertNotNull(result.getId());
+        assertEquals(doctorId, result.getDoctorId());
+        assertEquals(patientId, result.getPatientId());
+        assertEquals(consultationId, result.getConsultationId());
+        assertEquals(5, result.getRating());
+        assertEquals("Great service!", result.getComment());
+        assertEquals(1, result.getVersion());
+        assertTrue(result.getIsCurrentVersion());
+        assertNotNull(result.getParentId());
     }
 
     @Test
-    void testReturnTypes() throws NoSuchMethodException {
-        assertEquals(Review.class, ReviewService.class.getMethod("createReview", UUID.class, ReviewRequest.class).getReturnType());
-        assertEquals(List.class, ReviewService.class.getMethod("getDoctorReviews", UUID.class).getReturnType());
+    void testGetDoctorReviews() {
+        service.createReview(consultationId, reviewRequest);
+        List<Review> reviews = service.getDoctorReviews(doctorId);
+
+        assertNotNull(reviews);
+        assertEquals(1, reviews.size());
+        assertEquals(doctorId, reviews.get(0).getDoctorId());
     }
 
     @Test
-    void testParameterTypes() throws NoSuchMethodException {
-        assertArrayEquals(
-            new Class<?>[] { UUID.class, ReviewRequest.class },
-            ReviewService.class.getMethod("createReview", UUID.class, ReviewRequest.class).getParameterTypes()
-        );
+    void testUpdateReview() {
+        Review createdReview = service.createReview(consultationId, reviewRequest);
         
-        assertArrayEquals(
-            new Class<?>[] { UUID.class },
-            ReviewService.class.getMethod("getDoctorReviews", UUID.class).getParameterTypes()
-        );
+        ReviewRequest updateRequest = new ReviewRequest();
+        updateRequest.setDoctorId(doctorId);
+        updateRequest.setPatientId(patientId);
+        updateRequest.setRating(4);
+        updateRequest.setComment("Updated review");
+
+        Review updatedReview = service.updateReview(createdReview.getId(), updateRequest);
+
+        assertNotNull(updatedReview);
+        assertNotEquals(createdReview.getId(), updatedReview.getId());
+        assertEquals(2, updatedReview.getVersion());
+        assertTrue(updatedReview.getIsCurrentVersion());
+        assertEquals(createdReview.getParentId(), updatedReview.getParentId());
+        assertEquals(4, updatedReview.getRating());
+        assertEquals("Updated review", updatedReview.getComment());
+
+        List<Review> history = service.getReviewHistory(createdReview.getId());
+        assertEquals(2, history.size());
+        assertFalse(history.get(0).getIsCurrentVersion());
+        assertTrue(history.get(1).getIsCurrentVersion());
+    }
+
+    @Test
+    void testUpdateReviewNotFound() {
+        ReviewRequest updateRequest = new ReviewRequest();
+        updateRequest.setDoctorId(doctorId);
+        updateRequest.setPatientId(patientId);
+        updateRequest.setRating(4);
+        updateRequest.setComment("Updated review");
+
+        assertThrows(ReviewNotFoundException.class, () -> 
+            service.updateReview(UUID.randomUUID(), updateRequest));
+    }
+
+    @Test
+    void testGetReviewHistory() {
+        Review createdReview = service.createReview(consultationId, reviewRequest);
+        
+        ReviewRequest updateRequest = new ReviewRequest();
+        updateRequest.setDoctorId(doctorId);
+        updateRequest.setPatientId(patientId);
+        updateRequest.setRating(4);
+        updateRequest.setComment("Updated review");
+
+        service.updateReview(createdReview.getId(), updateRequest);
+        List<Review> history = service.getReviewHistory(createdReview.getId());
+
+        assertNotNull(history);
+        assertEquals(2, history.size());
+        assertEquals(1, history.get(0).getVersion());
+        assertEquals(2, history.get(1).getVersion());
+        assertFalse(history.get(0).getIsCurrentVersion());
+        assertTrue(history.get(1).getIsCurrentVersion());
+    }
+
+    @Test
+    void testGetReviewHistoryNotFound() {
+        assertThrows(ReviewNotFoundException.class, () -> 
+            service.getReviewHistory(UUID.randomUUID()));
+    }
+
+    @Test
+    void testGetCurrentVersion() {
+        Review createdReview = service.createReview(consultationId, reviewRequest);
+        Review currentVersion = service.getCurrentVersion(createdReview.getId());
+
+        assertNotNull(currentVersion);
+        assertEquals(createdReview.getId(), currentVersion.getId());
+        assertTrue(currentVersion.getIsCurrentVersion());
+    }
+
+    @Test
+    void testGetCurrentVersionAfterUpdate() {
+        Review createdReview = service.createReview(consultationId, reviewRequest);
+        
+        ReviewRequest updateRequest = new ReviewRequest();
+        updateRequest.setDoctorId(doctorId);
+        updateRequest.setPatientId(patientId);
+        updateRequest.setRating(4);
+        updateRequest.setComment("Updated review");
+
+        Review updatedReview = service.updateReview(createdReview.getId(), updateRequest);
+        Review currentVersion = service.getCurrentVersion(createdReview.getId());
+
+        assertNotNull(currentVersion);
+        assertEquals(updatedReview.getId(), currentVersion.getId());
+        assertTrue(currentVersion.getIsCurrentVersion());
+        assertEquals(2, currentVersion.getVersion());
+    }
+
+    @Test
+    void testGetCurrentVersionNotFound() {
+        assertThrows(ReviewNotFoundException.class, () -> 
+            service.getCurrentVersion(UUID.randomUUID()));
     }
 }

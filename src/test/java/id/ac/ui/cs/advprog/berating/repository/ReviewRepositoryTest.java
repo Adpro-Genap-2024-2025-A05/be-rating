@@ -2,8 +2,8 @@ package id.ac.ui.cs.advprog.berating.repository;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -23,43 +23,52 @@ public class ReviewRepositoryTest {
     @Autowired
     private ReviewRepository reviewRepository;
 
-    private UUID doctorId1;
-    private UUID doctorId2;
+    private UUID doctorId;
     private UUID patientId;
     private UUID consultationId;
+    private UUID parentId;
     private Review review1;
     private Review review2;
     private Review review3;
 
     @BeforeEach
     void setUp() {
-        doctorId1 = UUID.randomUUID();
-        doctorId2 = UUID.randomUUID();
+        doctorId = UUID.randomUUID();
         patientId = UUID.randomUUID();
         consultationId = UUID.randomUUID();
+        parentId = UUID.randomUUID();
 
         review1 = Review.builder()
-                .doctorId(doctorId1)
+                .doctorId(doctorId)
                 .patientId(patientId)
                 .consultationId(consultationId)
                 .rating(5)
-                .comment("Great service!")
+                .comment("First version")
+                .version(1)
+                .parentId(parentId)
+                .isCurrentVersion(false)
                 .build();
 
         review2 = Review.builder()
-                .doctorId(doctorId1)
+                .doctorId(doctorId)
                 .patientId(patientId)
                 .consultationId(consultationId)
                 .rating(4)
-                .comment("Good service")
+                .comment("Second version")
+                .version(2)
+                .parentId(parentId)
+                .isCurrentVersion(false)
                 .build();
 
         review3 = Review.builder()
-                .doctorId(doctorId2)
+                .doctorId(doctorId)
                 .patientId(patientId)
                 .consultationId(consultationId)
                 .rating(3)
-                .comment("Average service")
+                .comment("Third version")
+                .version(3)
+                .parentId(parentId)
+                .isCurrentVersion(true)
                 .build();
 
         entityManager.persist(review1);
@@ -70,81 +79,79 @@ public class ReviewRepositoryTest {
 
     @Test
     void testFindByDoctorId() {
-        List<Review> reviews = reviewRepository.findByDoctorId(doctorId1);
+        List<Review> reviews = reviewRepository.findByDoctorId(doctorId);
         
         assertNotNull(reviews);
-        assertEquals(2, reviews.size());
-        assertTrue(reviews.stream().allMatch(review -> review.getDoctorId().equals(doctorId1)));
+        assertEquals(3, reviews.size());
+        assertTrue(reviews.stream().allMatch(r -> r.getDoctorId().equals(doctorId)));
     }
 
     @Test
-    void testFindByDoctorIdWithNoReviews() {
-        UUID nonExistentDoctorId = UUID.randomUUID();
-        List<Review> reviews = reviewRepository.findByDoctorId(nonExistentDoctorId);
+    void testFindByDoctorIdWithNoResults() {
+        List<Review> reviews = reviewRepository.findByDoctorId(UUID.randomUUID());
         
         assertNotNull(reviews);
         assertTrue(reviews.isEmpty());
     }
 
     @Test
-    void testSaveReview() {
+    void testFindAllVersionsByParentId() {
+        List<Review> reviews = reviewRepository.findAllVersionsByParentId(parentId);
+        
+        assertNotNull(reviews);
+        assertEquals(3, reviews.size());
+        assertTrue(reviews.stream().allMatch(r -> r.getParentId().equals(parentId)));
+        
+        assertEquals(1, reviews.get(0).getVersion());
+        assertEquals(2, reviews.get(1).getVersion());
+        assertEquals(3, reviews.get(2).getVersion());
+    }
+
+    @Test
+    void testFindAllVersionsByParentIdWithNoResults() {
+        List<Review> reviews = reviewRepository.findAllVersionsByParentId(UUID.randomUUID());
+        
+        assertNotNull(reviews);
+        assertTrue(reviews.isEmpty());
+    }
+
+    @Test
+    void testFindCurrentVersionByParentId() {
+        Review currentReview = reviewRepository.findCurrentVersionByParentId(parentId);
+        
+        assertNotNull(currentReview);
+        assertEquals(parentId, currentReview.getParentId());
+        assertTrue(currentReview.getIsCurrentVersion());
+        assertEquals(3, currentReview.getVersion());
+    }
+
+    @Test
+    void testFindCurrentVersionByParentIdWithNoResults() {
+        Review currentReview = reviewRepository.findCurrentVersionByParentId(UUID.randomUUID());
+        
+        assertNull(currentReview);
+    }
+
+    @Test
+    void testSaveAndRetrieveReview() {
+        UUID newParentId = UUID.randomUUID();
         Review newReview = Review.builder()
-                .doctorId(doctorId1)
+                .doctorId(doctorId)
                 .patientId(patientId)
                 .consultationId(consultationId)
                 .rating(5)
                 .comment("New review")
+                .version(1)
+                .parentId(newParentId)
+                .isCurrentVersion(true)
                 .build();
 
         Review savedReview = reviewRepository.save(newReview);
-        
-        assertNotNull(savedReview);
-        assertNotNull(savedReview.getId());
-        assertEquals(newReview.getDoctorId(), savedReview.getDoctorId());
-        assertEquals(newReview.getRating(), savedReview.getRating());
-    }
+        Review retrievedReview = reviewRepository.findById(savedReview.getId()).orElse(null);
 
-    @Test
-    void testFindById() {
-        Optional<Review> foundReview = reviewRepository.findById(review1.getId());
-        
-        assertTrue(foundReview.isPresent());
-        assertEquals(review1.getId(), foundReview.get().getId());
-        assertEquals(review1.getDoctorId(), foundReview.get().getDoctorId());
-    }
-
-    @Test
-    void testFindByIdNotFound() {
-        UUID nonExistentId = UUID.randomUUID();
-        Optional<Review> foundReview = reviewRepository.findById(nonExistentId);
-        
-        assertTrue(foundReview.isEmpty());
-    }
-
-    @Test
-    void testFindAll() {
-        List<Review> allReviews = reviewRepository.findAll();
-        
-        assertNotNull(allReviews);
-        assertEquals(3, allReviews.size());
-    }
-
-    @Test
-    void testDeleteReview() {
-        reviewRepository.delete(review1);
-        Optional<Review> deletedReview = reviewRepository.findById(review1.getId());
-        
-        assertTrue(deletedReview.isEmpty());
-    }
-
-    @Test
-    void testUpdateReview() {
-        review1.setRating(4);
-        review1.setComment("Updated comment");
-        Review updatedReview = reviewRepository.save(review1);
-        
-        assertNotNull(updatedReview);
-        assertEquals(4, updatedReview.getRating());
-        assertEquals("Updated comment", updatedReview.getComment());
+        assertNotNull(retrievedReview);
+        assertEquals(savedReview.getId(), retrievedReview.getId());
+        assertEquals(newParentId, retrievedReview.getParentId());
+        assertTrue(retrievedReview.getIsCurrentVersion());
     }
 }

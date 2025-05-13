@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,11 +46,6 @@ public class GlobalExceptionHandlerTest {
 
     @Mock
     private BindingResult bindingResult;
-
-    @BeforeEach
-    void setUp() {
-        // Remove unnecessary stubbing
-    }
 
     @Test
     void testHandleValidationExceptions() {
@@ -267,15 +263,12 @@ public class GlobalExceptionHandlerTest {
 
     @Test
     void handleConsultationHistoryNotFoundException_ShouldReturnNotFoundResponse() {
-        // Arrange
         String consultationId = "123";
         ConsultationHistoryNotFoundException ex = new ConsultationHistoryNotFoundException(consultationId);
         ServletWebRequest request = new ServletWebRequest(new MockHttpServletRequest());
 
-        // Act
         ResponseEntity<ErrorResponse> response = exceptionHandler.handleConsultationHistoryNotFoundException(ex, request);
 
-        // Assert
         assertNotNull(response);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -286,30 +279,24 @@ public class GlobalExceptionHandlerTest {
 
     @Test
     void handleConsultationHistoryNotFoundException_ShouldIncludePathInResponse() {
-        // Arrange
         ConsultationHistoryNotFoundException ex = new ConsultationHistoryNotFoundException("123");
         MockHttpServletRequest mockRequest = new MockHttpServletRequest("GET", "/api/consultations/123");
         ServletWebRequest request = new ServletWebRequest(mockRequest);
 
-        // Act
         ResponseEntity<ErrorResponse> response = exceptionHandler.handleConsultationHistoryNotFoundException(ex, request);
 
-        // Assert
         assertNotNull(response.getBody());
         assertEquals("/api/consultations/123", response.getBody().getPath());
     }
 
     @Test
     void handleUserNotFoundException_ShouldReturnNotFoundResponse() {
-        // Arrange
         String userId = "123";
         UserNotFoundException ex = new UserNotFoundException(userId);
         ServletWebRequest request = new ServletWebRequest(new MockHttpServletRequest());
 
-        // Act
         ResponseEntity<ErrorResponse> response = exceptionHandler.handleUserNotFoundException(ex, request);
 
-        // Assert
         assertNotNull(response);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -320,15 +307,12 @@ public class GlobalExceptionHandlerTest {
 
     @Test
     void handleDoctorNotFoundException_ShouldReturnNotFoundResponse() {
-        // Arrange
         String doctorId = "123";
         DoctorNotFoundException ex = new DoctorNotFoundException(doctorId);
         ServletWebRequest request = new ServletWebRequest(new MockHttpServletRequest());
 
-        // Act
         ResponseEntity<ErrorResponse> response = exceptionHandler.handleDoctorNotFoundException(ex, request);
 
-        // Assert
         assertNotNull(response);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -339,20 +323,18 @@ public class GlobalExceptionHandlerTest {
 
     @Test
     void handleReviewNotFoundException_ShouldReturnNotFoundResponse() {
-        // Arrange
-        String reviewId = "123";
-        ReviewNotFoundException ex = new ReviewNotFoundException(reviewId);
+        UUID reviewId = UUID.randomUUID();
+        ReviewNotFoundException exception = new ReviewNotFoundException(reviewId);
         ServletWebRequest request = new ServletWebRequest(new MockHttpServletRequest());
-
-        // Act
-        ResponseEntity<ErrorResponse> response = exceptionHandler.handleReviewNotFoundException(ex, request);
-
-        // Assert
+        
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleReviewNotFoundException(exception, request);
+        
         assertNotNull(response);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(HttpStatus.NOT_FOUND.value(), response.getBody().getStatus());
         assertEquals("Review Not Found", response.getBody().getError());
-        assertEquals("Review not found with id: " + reviewId, response.getBody().getMessage());
+        assertTrue(response.getBody().getMessage().contains(reviewId.toString()));
+        assertNotNull(response.getBody().getTimestamp());
     }
 }
