@@ -41,6 +41,16 @@ public class Review {
     @Column(name="consultation_id", nullable = false)
     private UUID consultationId;
 
+    @Min(value = 1, message = "version must be at least 1")
+    @Column(name="version", nullable = false)
+    private Integer version;
+
+    @Column(name="parent_id")
+    private UUID parentId;
+
+    @Column(name="is_current_version", nullable = false)
+    private Boolean isCurrentVersion;
+
     @Min(value = 1, message = "Rating must be at least 1")
     @Max(value = 5, message = "Rating must be at most 5")
     @Column(name="rating", nullable = false)
@@ -63,6 +73,15 @@ public class Review {
     protected void onCreate() {
         if (id == null) {
             id = UUID.randomUUID();
+        }
+        if (version == null) {
+            version = 1;
+        }
+        if (isCurrentVersion == null) {
+            isCurrentVersion = true;
+        }
+        if (parentId == null) {
+            parentId = id;  // For the first version, parentId is same as id
         }
     }
 }
