@@ -329,80 +329,6 @@ public class ReviewServiceImplTest {
     }
 
     @Test
-    void testGetCurrentVersion() {
-        review = Review.builder()
-                .id(reviewId)
-                .doctorId(doctorId)
-                .patientId(patientId)
-                .consultationId(consultationId)
-                .rating(5)
-                .comment("Great service!")
-                .version(1)
-                .parentId(parentId)
-                .isCurrentVersion(true)
-                .build();
-
-        when(reviewRepository.findById(reviewId)).thenReturn(java.util.Optional.of(review));
-
-        Review result = reviewService.getCurrentVersion(reviewId);
-
-        assertNotNull(result);
-        assertEquals(reviewId, result.getId());
-        assertTrue(result.getIsCurrentVersion());
-        
-        verify(reviewRepository, times(1)).findById(reviewId);
-        verify(reviewRepository, never()).findCurrentVersionByParentId(any());
-    }
-
-    @Test
-    void testGetCurrentVersionNotFound() {
-        when(reviewRepository.findById(reviewId)).thenReturn(java.util.Optional.empty());
-
-        assertThrows(ReviewNotFoundException.class, () -> 
-            reviewService.getCurrentVersion(reviewId));
-    }
-
-    @Test
-    void testGetCurrentVersionWhenNotCurrent() {
-        // Setup the review with all required fields
-        review = Review.builder()
-                .id(reviewId)
-                .doctorId(doctorId)
-                .patientId(patientId)
-                .consultationId(consultationId)
-                .rating(5)
-                .comment("Great service!")
-                .version(1)
-                .parentId(parentId)
-                .isCurrentVersion(false)
-                .build();
-
-        updatedReview = Review.builder()
-                .id(UUID.randomUUID())
-                .doctorId(doctorId)
-                .patientId(patientId)
-                .consultationId(consultationId)
-                .rating(4)
-                .comment("Updated review")
-                .version(2)
-                .parentId(parentId)
-                .isCurrentVersion(true)
-                .build();
-
-        when(reviewRepository.findById(reviewId)).thenReturn(java.util.Optional.of(review));
-        when(reviewRepository.findCurrentVersionByParentId(parentId)).thenReturn(updatedReview);
-
-        Review result = reviewService.getCurrentVersion(reviewId);
-
-        assertNotNull(result);
-        assertEquals(updatedReview.getId(), result.getId());
-        assertTrue(result.getIsCurrentVersion());
-        
-        verify(reviewRepository, times(1)).findById(reviewId);
-        verify(reviewRepository, times(1)).findCurrentVersionByParentId(parentId);
-    }
-
-    @Test
     void testReviewNotFoundExceptionWithMessage() {
         String errorMessage = "Custom error message";
         ReviewNotFoundException exception = new ReviewNotFoundException(errorMessage);
@@ -432,16 +358,6 @@ public class ReviewServiceImplTest {
 
         ReviewNotFoundException exception = assertThrows(ReviewNotFoundException.class, () -> 
             reviewService.updateReview(reviewId, updateRequest));
-        
-        assertTrue(exception.getMessage().contains(reviewId.toString()));
-    }
-
-    @Test
-    void testGetCurrentVersionThrowsReviewNotFoundExceptionWithMessage() {
-        when(reviewRepository.findById(reviewId)).thenReturn(java.util.Optional.empty());
-
-        ReviewNotFoundException exception = assertThrows(ReviewNotFoundException.class, () -> 
-            reviewService.getCurrentVersion(reviewId));
         
         assertTrue(exception.getMessage().contains(reviewId.toString()));
     }

@@ -117,23 +117,6 @@ public class ReviewServiceTest {
             }
 
             @Override
-            public Review getCurrentVersion(UUID reviewId) {
-                Review review = reviews.stream()
-                        .filter(r -> r.getId().equals(reviewId))
-                        .findFirst()
-                        .orElseThrow(() -> new ReviewNotFoundException(reviewId));
-
-                if (review.getIsCurrentVersion()) {
-                    return review;
-                }
-
-                return reviews.stream()
-                        .filter(r -> r.getParentId().equals(review.getParentId()) && r.getIsCurrentVersion())
-                        .findFirst()
-                        .orElseThrow(() -> new ReviewNotFoundException("No current version found for review: " + reviewId));
-            }
-
-            @Override
             public Review deleteReview(UUID reviewId) {
                 Review review = reviews.stream()
                         .filter(r -> r.getId().equals(reviewId))
@@ -246,41 +229,6 @@ public class ReviewServiceTest {
     void testGetReviewHistoryNotFound() {
         assertThrows(ReviewNotFoundException.class, () -> 
             service.getReviewHistory(UUID.randomUUID()));
-    }
-
-    @Test
-    void testGetCurrentVersion() {
-        Review createdReview = service.createReview(consultationId, reviewRequest);
-        Review currentVersion = service.getCurrentVersion(createdReview.getId());
-
-        assertNotNull(currentVersion);
-        assertEquals(createdReview.getId(), currentVersion.getId());
-        assertTrue(currentVersion.getIsCurrentVersion());
-    }
-
-    @Test
-    void testGetCurrentVersionAfterUpdate() {
-        Review createdReview = service.createReview(consultationId, reviewRequest);
-        
-        ReviewRequest updateRequest = new ReviewRequest();
-        updateRequest.setDoctorId(doctorId);
-        updateRequest.setPatientId(patientId);
-        updateRequest.setRating(4);
-        updateRequest.setComment("Updated review");
-
-        Review updatedReview = service.updateReview(createdReview.getId(), updateRequest);
-        Review currentVersion = service.getCurrentVersion(createdReview.getId());
-
-        assertNotNull(currentVersion);
-        assertEquals(updatedReview.getId(), currentVersion.getId());
-        assertTrue(currentVersion.getIsCurrentVersion());
-        assertEquals(2, currentVersion.getVersion());
-    }
-
-    @Test
-    void testGetCurrentVersionNotFound() {
-        assertThrows(ReviewNotFoundException.class, () -> 
-            service.getCurrentVersion(UUID.randomUUID()));
     }
 
     @Test

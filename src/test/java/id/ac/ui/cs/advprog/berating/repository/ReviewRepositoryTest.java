@@ -82,8 +82,10 @@ public class ReviewRepositoryTest {
         List<Review> reviews = reviewRepository.findByDoctorId(doctorId);
         
         assertNotNull(reviews);
-        assertEquals(3, reviews.size());
+        assertEquals(1, reviews.size()); // Only current version should be returned
         assertTrue(reviews.stream().allMatch(r -> r.getDoctorId().equals(doctorId)));
+        assertTrue(reviews.stream().allMatch(Review::getIsCurrentVersion));
+        assertEquals(review3, reviews.get(0)); // Should be the current version
     }
 
     @Test
@@ -92,6 +94,33 @@ public class ReviewRepositoryTest {
         
         assertNotNull(reviews);
         assertTrue(reviews.isEmpty());
+    }
+
+    @Test
+    void testFindByDoctorIdWithMultipleCurrentVersions() {
+        // Create another current version review for the same doctor
+        Review review4 = Review.builder()
+                .doctorId(doctorId)
+                .patientId(UUID.randomUUID())
+                .consultationId(UUID.randomUUID())
+                .rating(5)
+                .comment("Another current review")
+                .version(1)
+                .parentId(UUID.randomUUID())
+                .isCurrentVersion(true)
+                .build();
+
+        entityManager.persist(review4);
+        entityManager.flush();
+
+        List<Review> reviews = reviewRepository.findByDoctorId(doctorId);
+        
+        assertNotNull(reviews);
+        assertEquals(2, reviews.size()); // Should return both current versions
+        assertTrue(reviews.stream().allMatch(r -> r.getDoctorId().equals(doctorId)));
+        assertTrue(reviews.stream().allMatch(Review::getIsCurrentVersion));
+        assertTrue(reviews.contains(review3));
+        assertTrue(reviews.contains(review4));
     }
 
     @Test
@@ -160,8 +189,10 @@ public class ReviewRepositoryTest {
         List<Review> reviews = reviewRepository.findByPatientId(patientId);
         
         assertNotNull(reviews);
-        assertEquals(3, reviews.size());
+        assertEquals(1, reviews.size()); // Only current version should be returned
         assertTrue(reviews.stream().allMatch(r -> r.getPatientId().equals(patientId)));
+        assertTrue(reviews.stream().allMatch(Review::getIsCurrentVersion));
+        assertEquals(review3, reviews.get(0)); // Should be the current version
     }
 
     @Test
@@ -173,14 +204,14 @@ public class ReviewRepositoryTest {
     }
 
     @Test
-    void testFindByPatientIdWithMultipleReviews() {
-        // Create a new review for the same patient but different doctor
+    void testFindByPatientIdWithMultipleCurrentVersions() {
+        // Create another current version review for the same patient
         Review review4 = Review.builder()
                 .doctorId(UUID.randomUUID())
                 .patientId(patientId)
                 .consultationId(UUID.randomUUID())
                 .rating(5)
-                .comment("Fourth review")
+                .comment("Another current review")
                 .version(1)
                 .parentId(UUID.randomUUID())
                 .isCurrentVersion(true)
@@ -192,8 +223,10 @@ public class ReviewRepositoryTest {
         List<Review> reviews = reviewRepository.findByPatientId(patientId);
         
         assertNotNull(reviews);
-        assertEquals(4, reviews.size());
+        assertEquals(2, reviews.size()); // Should return both current versions
         assertTrue(reviews.stream().allMatch(r -> r.getPatientId().equals(patientId)));
+        assertTrue(reviews.stream().allMatch(Review::getIsCurrentVersion));
+        assertTrue(reviews.contains(review3));
         assertTrue(reviews.contains(review4));
     }
 
@@ -218,13 +251,15 @@ public class ReviewRepositoryTest {
         // Test original patient's reviews
         List<Review> originalPatientReviews = reviewRepository.findByPatientId(patientId);
         assertNotNull(originalPatientReviews);
-        assertEquals(3, originalPatientReviews.size());
+        assertEquals(1, originalPatientReviews.size()); // Only current version
         assertTrue(originalPatientReviews.stream().allMatch(r -> r.getPatientId().equals(patientId)));
+        assertTrue(originalPatientReviews.stream().allMatch(Review::getIsCurrentVersion));
 
         // Test different patient's reviews
         List<Review> differentPatientReviews = reviewRepository.findByPatientId(differentPatientId);
         assertNotNull(differentPatientReviews);
         assertEquals(1, differentPatientReviews.size());
         assertTrue(differentPatientReviews.stream().allMatch(r -> r.getPatientId().equals(differentPatientId)));
+        assertTrue(differentPatientReviews.stream().allMatch(Review::getIsCurrentVersion));
     }
 }

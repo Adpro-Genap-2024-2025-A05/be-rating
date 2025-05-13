@@ -2,6 +2,7 @@ package id.ac.ui.cs.advprog.berating.controller;
 
 import id.ac.ui.cs.advprog.berating.dto.BaseResponseDTO;
 import id.ac.ui.cs.advprog.berating.dto.ReviewRequest;
+import id.ac.ui.cs.advprog.berating.exception.ReviewNotFoundException;
 import id.ac.ui.cs.advprog.berating.interfaces.ReviewService;
 import id.ac.ui.cs.advprog.berating.model.Review;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +19,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -89,7 +90,7 @@ class ReviewControllerTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         BaseResponseDTO<Review> responseBody = (BaseResponseDTO<Review>) response.getBody();
         assertEquals(201, responseBody.getStatus());
-        assertEquals("Success to retrieve doctor reviews.", responseBody.getMessage());
+        assertEquals("Success to create review.", responseBody.getMessage());
         assertEquals(review, responseBody.getData());
         verify(reviewService).createReview(eq(consultationId), any(ReviewRequest.class));
     }
@@ -150,7 +151,7 @@ class ReviewControllerTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         BaseResponseDTO<Review> responseBody = (BaseResponseDTO<Review>) response.getBody();
         assertEquals(201, responseBody.getStatus());
-        assertEquals("Success to retrieve doctor reviews.", responseBody.getMessage());
+        assertEquals("Success to create review.", responseBody.getMessage());
         assertEquals(reviewWithoutComment, responseBody.getData());
         verify(reviewService).createReview(eq(consultationId), any(ReviewRequest.class));
     }
@@ -176,7 +177,7 @@ class ReviewControllerTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         BaseResponseDTO<Review> responseBody = (BaseResponseDTO<Review>) response.getBody();
         assertEquals(201, responseBody.getStatus());
-        assertEquals("Success to retrieve doctor reviews.", responseBody.getMessage());
+        assertEquals("Success to create review.", responseBody.getMessage());
         assertEquals(reviewWithMinRating, responseBody.getData());
         verify(reviewService).createReview(eq(consultationId), any(ReviewRequest.class));
     }
@@ -192,5 +193,141 @@ class ReviewControllerTest {
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals(errorMessage, response.getBody());
         verify(reviewService).createReview(eq(consultationId), any(ReviewRequest.class));
+    }
+
+    @Test
+    void testGetReviewUser_Success() {
+        List<Review> reviews = Arrays.asList(review);
+        when(reviewService.getReviewUser(patientId)).thenReturn(reviews);
+
+        ResponseEntity<BaseResponseDTO<List<Review>>> response = reviewController.getReviewUser(patientId);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(200, response.getBody().getStatus());
+        assertEquals("Success to retrieve patient reviews.", response.getBody().getMessage());
+        assertEquals(reviews, response.getBody().getData());
+        verify(reviewService).getReviewUser(patientId);
+    }
+
+    @Test
+    void testGetReviewUser_EmptyList() {
+        when(reviewService.getReviewUser(patientId)).thenReturn(Collections.emptyList());
+
+        ResponseEntity<BaseResponseDTO<List<Review>>> response = reviewController.getReviewUser(patientId);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(200, response.getBody().getStatus());
+        assertEquals("Success to retrieve patient reviews.", response.getBody().getMessage());
+        assertEquals(Collections.emptyList(), response.getBody().getData());
+        verify(reviewService).getReviewUser(patientId);
+    }
+
+    @Test
+    void testGetReviewHistory_Success() {
+        List<Review> reviews = Arrays.asList(review);
+        when(reviewService.getReviewHistory(reviewId)).thenReturn(reviews);
+
+        ResponseEntity<BaseResponseDTO<List<Review>>> response = reviewController.getReviewHistory(reviewId);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(200, response.getBody().getStatus());
+        assertEquals("Success to retrieve review history.", response.getBody().getMessage());
+        assertEquals(reviews, response.getBody().getData());
+        verify(reviewService).getReviewHistory(reviewId);
+    }
+
+    @Test
+    void testGetReviewHistory_EmptyList() {
+        when(reviewService.getReviewHistory(reviewId)).thenReturn(Collections.emptyList());
+
+        ResponseEntity<BaseResponseDTO<List<Review>>> response = reviewController.getReviewHistory(reviewId);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(200, response.getBody().getStatus());
+        assertEquals("Success to retrieve review history.", response.getBody().getMessage());
+        assertEquals(Collections.emptyList(), response.getBody().getData());
+        verify(reviewService).getReviewHistory(reviewId);
+    }
+
+    @Test
+    void testUpdateReview_Success() {
+        when(reviewService.updateReview(eq(reviewId), any(ReviewRequest.class))).thenReturn(review);
+
+        ResponseEntity<?> response = reviewController.updateReview(reviewId, reviewRequest);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        BaseResponseDTO<Review> responseBody = (BaseResponseDTO<Review>) response.getBody();
+        assertEquals(200, responseBody.getStatus());
+        assertEquals("Success to update review.", responseBody.getMessage());
+        assertEquals(review, responseBody.getData());
+        verify(reviewService).updateReview(eq(reviewId), any(ReviewRequest.class));
+    }
+
+    @Test
+    void testUpdateReview_InvalidRating() {
+        reviewRequest.setRating(6); // Invalid rating (should be 1-5)
+
+        ResponseEntity<?> response = reviewController.updateReview(reviewId, reviewRequest);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Rating must be between 1 and 5", response.getBody());
+        verify(reviewService, never()).updateReview(any(), any());
+    }
+
+    @Test
+    void testUpdateReview_MissingRequiredField() {
+        reviewRequest.setRating(null); // Required field
+
+        ResponseEntity<?> response = reviewController.updateReview(reviewId, reviewRequest);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Rating is required", response.getBody());
+        verify(reviewService, never()).updateReview(any(), any());
+    }
+
+    @Test
+    void testUpdateReview_ServiceThrowsIllegalArgumentException() {
+        String errorMessage = "Invalid review ID";
+        when(reviewService.updateReview(eq(reviewId), any(ReviewRequest.class)))
+                .thenThrow(new IllegalArgumentException(errorMessage));
+
+        ResponseEntity<?> response = reviewController.updateReview(reviewId, reviewRequest);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(errorMessage, response.getBody());
+        verify(reviewService).updateReview(eq(reviewId), any(ReviewRequest.class));
+    }
+
+    @Test
+    void testDeleteReview_Success() {
+        when(reviewService.deleteReview(reviewId)).thenReturn(review);
+
+        ResponseEntity<BaseResponseDTO<Review>> response = reviewController.deleteReview(reviewId);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(200, response.getBody().getStatus());
+        assertEquals("Success to delete review.", response.getBody().getMessage());
+        assertEquals(review, response.getBody().getData());
+        verify(reviewService).deleteReview(reviewId);
+    }
+
+    @Test
+    void testDeleteReview_ServiceThrowsReviewNotFoundException() {
+        when(reviewService.deleteReview(reviewId))
+                .thenThrow(new ReviewNotFoundException(reviewId));
+
+        assertThrows(ReviewNotFoundException.class, () -> 
+            reviewController.deleteReview(reviewId));
+        verify(reviewService).deleteReview(reviewId);
+    }
+
+    @Test
+    void testGetReviewHistory_ServiceThrowsReviewNotFoundException() {
+        when(reviewService.getReviewHistory(reviewId))
+                .thenThrow(new ReviewNotFoundException(reviewId));
+
+        assertThrows(ReviewNotFoundException.class, () -> 
+            reviewController.getReviewHistory(reviewId));
+        verify(reviewService).getReviewHistory(reviewId);
     }
 }
