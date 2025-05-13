@@ -2,7 +2,6 @@ package id.ac.ui.cs.advprog.berating.repository;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 

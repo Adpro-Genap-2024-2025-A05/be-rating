@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,6 +33,7 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     @GetMapping(value = "/{doctorId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<BaseResponseDTO<List<Review>>> getDoctorReviews(@PathVariable("doctorId") UUID doctorId) {
         BaseResponseDTO<List<Review>> baseResponseDTO = new BaseResponseDTO<>();
         List<Review> reviews = reviewService.getDoctorReviews(doctorId);
@@ -45,6 +47,7 @@ public class ReviewController {
     }
 
     @PostMapping(value = "/create/{consultationId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAuthority('PACILIAN')")
     public ResponseEntity<?> createReview(
             @PathVariable("consultationId") UUID consultationId,
             @Valid @RequestBody ReviewRequest reviewRequest) {
@@ -72,6 +75,7 @@ public class ReviewController {
     }
 
     @GetMapping(value = "/{patientId}/user", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<BaseResponseDTO<List<Review>>> getReviewUser(@PathVariable("patientId") UUID patientId) {
         BaseResponseDTO<List<Review>> baseResponseDTO = new BaseResponseDTO<>();
         List<Review> reviews = reviewService.getReviewUser(patientId);
@@ -85,6 +89,7 @@ public class ReviewController {
     }
 
     @GetMapping(value = "/{reviewId}/history", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<BaseResponseDTO<List<Review>>> getReviewHistory(@PathVariable("reviewId") UUID reviewId) {
         BaseResponseDTO<List<Review>> baseResponseDTO = new BaseResponseDTO<>();
         List<Review> reviews = reviewService.getReviewHistory(reviewId);
@@ -98,6 +103,7 @@ public class ReviewController {
     }
 
     @PutMapping(value = "/{reviewId}/update", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAuthority('PACILIAN')")
     public ResponseEntity<?> updateReview(
         @PathVariable("reviewId") UUID reviewId,
         @RequestBody ReviewRequest reviewRequest) {
@@ -123,6 +129,7 @@ public class ReviewController {
     }
 
     @DeleteMapping(value = "/{reviewId}/delete", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAuthority('PACILIAN')")
     public ResponseEntity<BaseResponseDTO<Review>> deleteReview(@PathVariable("reviewId") UUID reviewId) {
         Review review = reviewService.deleteReview(reviewId);
         BaseResponseDTO<Review> baseResponseDTO = new BaseResponseDTO<>();

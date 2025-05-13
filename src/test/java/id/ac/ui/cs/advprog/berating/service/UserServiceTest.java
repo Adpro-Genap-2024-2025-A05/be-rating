@@ -39,6 +39,7 @@ class UserServiceTest {
     private UserDTO userDTO;
     private DoctorDTO doctorDTO;
 
+    @SuppressWarnings("unchecked")
     @BeforeEach
     void setUp() {
         userService = new UserService(webClient);

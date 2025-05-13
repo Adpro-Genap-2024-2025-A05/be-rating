@@ -22,9 +22,11 @@ class ConsultationHistoryServiceTest {
     @Mock
     private WebClient webClient;
 
+    @SuppressWarnings("rawtypes")
     @Mock
     private WebClient.RequestHeadersUriSpec requestHeadersUriSpec;
 
+    @SuppressWarnings("rawtypes")
     @Mock
     private WebClient.RequestHeadersSpec requestHeadersSpec;
 
@@ -36,6 +38,7 @@ class ConsultationHistoryServiceTest {
     private ConsultationHistoryDTO consultationHistoryDTO;
     private String consultationId;
 
+    @SuppressWarnings("unchecked")
     @BeforeEach
     void setUp() {
         consultationId = "consultation123";

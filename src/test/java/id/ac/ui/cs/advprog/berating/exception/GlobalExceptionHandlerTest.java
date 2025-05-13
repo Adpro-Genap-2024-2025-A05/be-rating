@@ -6,7 +6,6 @@ import static org.mockito.Mockito.*;
 import java.util.Map;
 import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -87,6 +86,7 @@ public class GlobalExceptionHandlerTest {
         assertEquals("Unsupported Media Type", response.getBody().getError());
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     void testHandleMessageNotReadable() {
         HttpMessageNotReadableException ex = new HttpMessageNotReadableException("Invalid JSON");
@@ -246,6 +246,7 @@ public class GlobalExceptionHandlerTest {
         assertEquals("/api/test/123", response.getBody().getPath());
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     void testHandleValidationExceptionsWithNullMessage() {
         MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);

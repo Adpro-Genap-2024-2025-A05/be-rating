@@ -88,6 +88,7 @@ class ReviewControllerTest {
         ResponseEntity<?> response = reviewController.createReview(consultationId, reviewRequest);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        @SuppressWarnings("unchecked")
         BaseResponseDTO<Review> responseBody = (BaseResponseDTO<Review>) response.getBody();
         assertEquals(201, responseBody.getStatus());
         assertEquals("Success to create review.", responseBody.getMessage());
@@ -175,6 +176,7 @@ class ReviewControllerTest {
         ResponseEntity<?> response = reviewController.createReview(consultationId, reviewRequest);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        @SuppressWarnings("unchecked")
         BaseResponseDTO<Review> responseBody = (BaseResponseDTO<Review>) response.getBody();
         assertEquals(201, responseBody.getStatus());
         assertEquals("Success to create review.", responseBody.getMessage());
@@ -256,6 +258,7 @@ class ReviewControllerTest {
         ResponseEntity<?> response = reviewController.updateReview(reviewId, reviewRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        @SuppressWarnings("unchecked")
         BaseResponseDTO<Review> responseBody = (BaseResponseDTO<Review>) response.getBody();
         assertEquals(200, responseBody.getStatus());
         assertEquals("Success to update review.", responseBody.getMessage());
