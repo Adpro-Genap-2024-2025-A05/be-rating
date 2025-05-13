@@ -47,4 +47,18 @@ public interface ReviewService {
      * @throws ReviewNotFoundException if the review is not found
      */
     Review getCurrentVersion(UUID reviewId);
+
+    /**
+     * Deletes a review
+     * @param reviewId The ID of the review to delete
+     * @throws ReviewNotFoundException if the review is not found
+     */
+    Review deleteReview(UUID reviewId);
+
+    /**
+     * Gets all reviews for a specific user
+     * @param patientId The ID of the user
+     * @return List of reviews for the user
+     */
+    List<Review> getReviewUser(UUID patientId);
 }

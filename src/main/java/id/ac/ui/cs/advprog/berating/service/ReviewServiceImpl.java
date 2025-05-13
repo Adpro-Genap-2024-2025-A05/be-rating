@@ -3,12 +3,10 @@ package id.ac.ui.cs.advprog.berating.service;
 import id.ac.ui.cs.advprog.berating.dto.ReviewRequest;
 import id.ac.ui.cs.advprog.berating.exception.ReviewNotFoundException;
 import id.ac.ui.cs.advprog.berating.interfaces.ReviewService;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import id.ac.ui.cs.advprog.berating.model.Review;
 import id.ac.ui.cs.advprog.berating.repository.ReviewRepository;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -49,19 +47,6 @@ public class ReviewServiceImpl implements ReviewService {
         return reviewRepository.save(newReview);
     }
 
-    private Review createNewVersion(Review oldReview, ReviewRequest reviewRequest) {
-        return Review.builder()
-            .doctorId(reviewRequest.getDoctorId())
-            .patientId(reviewRequest.getPatientId())
-            .consultationId(oldReview.getConsultationId())
-            .rating(reviewRequest.getRating())
-            .comment(reviewRequest.getComment())
-            .version(oldReview.getVersion() + 1)
-            .parentId(oldReview.getParentId())
-            .isCurrentVersion(true)
-            .build();
-    }
-
     @Override
     public List<Review> getReviewHistory(UUID reviewId) {
         Review review = reviewRepository.findById(reviewId)
@@ -82,6 +67,25 @@ public class ReviewServiceImpl implements ReviewService {
         return reviewRepository.findCurrentVersionByParentId(review.getParentId());
     }
 
+    @Override
+    public Review deleteReview(UUID reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+            .orElseThrow(() -> new ReviewNotFoundException(reviewId));
+
+        List<Review> allVersions = reviewRepository.findAllVersionsByParentId(review.getParentId());
+        
+        for (Review version : allVersions) {
+            reviewRepository.delete(version);
+        }
+
+        return review;
+    }
+
+    @Override
+    public List<Review> getReviewUser(UUID patientId) {
+        return reviewRepository.findByPatientId(patientId);
+    }
+
     private Review createReviewEntity(UUID consultationId, ReviewRequest reviewRequest) {
         Review.ReviewBuilder builder = Review.builder()
                 .consultationId(consultationId)
@@ -97,5 +101,17 @@ public class ReviewServiceImpl implements ReviewService {
 
         return builder.build();
     }
-    
+
+    private Review createNewVersion(Review oldReview, ReviewRequest reviewRequest) {
+        return Review.builder()
+            .doctorId(reviewRequest.getDoctorId())
+            .patientId(reviewRequest.getPatientId())
+            .consultationId(oldReview.getConsultationId())
+            .rating(reviewRequest.getRating())
+            .comment(reviewRequest.getComment())
+            .version(oldReview.getVersion() + 1)
+            .parentId(oldReview.getParentId())
+            .isCurrentVersion(true)
+            .build();
+    }
 }
