@@ -401,4 +401,58 @@ public class ReviewServiceImplTest {
         verify(reviewRepository, times(1)).findById(reviewId);
         verify(reviewRepository, times(1)).findCurrentVersionByParentId(parentId);
     }
+
+    @Test
+    void testReviewNotFoundExceptionWithMessage() {
+        String errorMessage = "Custom error message";
+        ReviewNotFoundException exception = new ReviewNotFoundException(errorMessage);
+        
+        assertEquals(errorMessage, exception.getMessage());
+    }
+
+    @Test
+    void testReviewNotFoundExceptionWithMessageAndCause() {
+        String errorMessage = "Custom error message";
+        Throwable cause = new RuntimeException("Original error");
+        ReviewNotFoundException exception = new ReviewNotFoundException(errorMessage, cause);
+        
+        assertEquals(errorMessage, exception.getMessage());
+        assertEquals(cause, exception.getCause());
+    }
+
+    @Test
+    void testUpdateReviewThrowsReviewNotFoundExceptionWithMessage() {
+        when(reviewRepository.findById(reviewId)).thenReturn(java.util.Optional.empty());
+
+        ReviewRequest updateRequest = new ReviewRequest();
+        updateRequest.setDoctorId(doctorId);
+        updateRequest.setPatientId(patientId);
+        updateRequest.setRating(4);
+        updateRequest.setComment("Updated review");
+
+        ReviewNotFoundException exception = assertThrows(ReviewNotFoundException.class, () -> 
+            reviewService.updateReview(reviewId, updateRequest));
+        
+        assertTrue(exception.getMessage().contains(reviewId.toString()));
+    }
+
+    @Test
+    void testGetCurrentVersionThrowsReviewNotFoundExceptionWithMessage() {
+        when(reviewRepository.findById(reviewId)).thenReturn(java.util.Optional.empty());
+
+        ReviewNotFoundException exception = assertThrows(ReviewNotFoundException.class, () -> 
+            reviewService.getCurrentVersion(reviewId));
+        
+        assertTrue(exception.getMessage().contains(reviewId.toString()));
+    }
+
+    @Test
+    void testGetReviewHistoryThrowsReviewNotFoundExceptionWithMessage() {
+        when(reviewRepository.findById(reviewId)).thenReturn(java.util.Optional.empty());
+
+        ReviewNotFoundException exception = assertThrows(ReviewNotFoundException.class, () -> 
+            reviewService.getReviewHistory(reviewId));
+        
+        assertTrue(exception.getMessage().contains(reviewId.toString()));
+    }
 }
