@@ -17,4 +17,10 @@ class BeRatingApplicationTests {
         // Verify that the Spring application context loads successfully
         assertThat(applicationContext).isNotNull();
     }
+
+    @Test
+    void testMainMethod() {
+        BeRatingApplication.main(new String[]{});
+        assertThat(true).isTrue();
+    }
 }

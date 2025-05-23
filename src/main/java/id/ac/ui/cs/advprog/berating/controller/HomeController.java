@@ -1,0 +1,23 @@
+package id.ac.ui.cs.advprog.berating.controller;
+
+import id.ac.ui.cs.advprog.berating.dto.ApiResponseDto;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/")
+@CrossOrigin(origins = "*")
+public class HomeController {
+
+    @GetMapping
+    public ResponseEntity<ApiResponseDto<Map<String, String>>> healthCheck() {
+        Map<String, String> status = new HashMap<>();
+        status.put("status", "UP");
+        status.put("service", "Back-End Rating API");
+
+        return ResponseEntity.ok(ApiResponseDto.success(200, "Service is running", status));
+    }
+}
