@@ -1,6 +1,6 @@
-package id.ac.ui.cs.advprog.test.controller;
+package id.ac.ui.cs.advprog.berating.controller;
 
-import id.ac.ui.cs.advprog.berating.berating.controller.RatingController;
+import id.ac.ui.cs.advprog.berating.controller.RatingController;
 import id.ac.ui.cs.advprog.berating.dto.*;
 import id.ac.ui.cs.advprog.berating.exception.GlobalExceptionHandler;
 import id.ac.ui.cs.advprog.berating.service.RatingService;

@@ -1,6 +1,6 @@
-package id.ac.ui.cs.advprog.test.client;
+package id.ac.ui.cs.advprog.berating.client;
 
-import id.ac.ui.cs.advprog.berating.berating.client.ExternalServiceClient;
+import id.ac.ui.cs.advprog.berating.client.ExternalServiceClient;
 import id.ac.ui.cs.advprog.berating.dto.ApiResponseDto;
 import id.ac.ui.cs.advprog.berating.dto.KonsultasiResponseDto;
 import id.ac.ui.cs.advprog.berating.dto.UserProfileDto;

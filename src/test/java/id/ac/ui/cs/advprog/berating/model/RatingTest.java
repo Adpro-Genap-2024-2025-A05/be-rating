@@ -1,8 +1,8 @@
-package id.ac.ui.cs.advprog.test.model;
+package id.ac.ui.cs.advprog.berating.model;
 
 import org.junit.jupiter.api.Test;
 
-import id.ac.ui.cs.advprog.berating.berating.model.Rating;
+import id.ac.ui.cs.advprog.berating.model.Rating;
 
 import static org.junit.jupiter.api.Assertions.*;
 
