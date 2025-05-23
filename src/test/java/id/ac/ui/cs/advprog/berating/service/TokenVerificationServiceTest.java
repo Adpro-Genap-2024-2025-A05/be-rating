@@ -1,5 +1,6 @@
-package id.ac.ui.cs.advprog.berating.service;
+package id.ac.ui.cs.advprog.test.service;
 
+import id.ac.ui.cs.advprog.berating.berating.service.TokenVerificationService;
 import id.ac.ui.cs.advprog.berating.dto.TokenVerificationResponseDto;
 import id.ac.ui.cs.advprog.berating.enums.Role;
 import id.ac.ui.cs.advprog.berating.exception.AuthenticationException;

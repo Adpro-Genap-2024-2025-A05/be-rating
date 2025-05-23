@@ -1,6 +1,9 @@
-package id.ac.ui.cs.advprog.berating.model;
+package id.ac.ui.cs.advprog.test.model;
 
 import org.junit.jupiter.api.Test;
+
+import id.ac.ui.cs.advprog.berating.berating.model.Rating;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.LocalDateTime;

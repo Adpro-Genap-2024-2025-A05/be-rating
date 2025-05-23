@@ -1,5 +1,6 @@
-package id.ac.ui.cs.advprog.berating.repository;
+package id.ac.ui.cs.advprog.test.repository;
 
+import id.ac.ui.cs.advprog.berating.berating.repository.RatingRepository;
 import id.ac.ui.cs.advprog.berating.model.Rating;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
