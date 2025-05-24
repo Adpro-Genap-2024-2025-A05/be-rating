@@ -71,9 +71,10 @@ public class RatingController {
 
     @GetMapping(path = "/caregiver/{caregiverId}/stats", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponseDto<CaregiverRatingStatsDto>> getCaregiverRatingStats(
-            @PathVariable UUID caregiverId) {
+            @PathVariable String caregiverId) {
 
-        CaregiverRatingStatsDto stats = ratingService.getCaregiverRatingStats(caregiverId);
+        UUID caregiverUuid = UUID.fromString(caregiverId);
+        CaregiverRatingStatsDto stats = ratingService.getCaregiverRatingStats(caregiverUuid);
 
         return ResponseEntity.ok(
                 ApiResponseDto.success(200, "Caregiver rating stats retrieved successfully", stats));
