@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/rating")
+@RequestMapping("/api/rating")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class RatingController {
