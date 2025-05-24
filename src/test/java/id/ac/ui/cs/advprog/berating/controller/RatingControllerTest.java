@@ -74,7 +74,7 @@ class RatingControllerTest {
     void testCreateRating_Success() throws Exception {
         when(ratingService.createRating(any(), any())).thenReturn(ratingResponse);
 
-        mockMvc.perform(post("/rating")
+        mockMvc.perform(post("/api/rating")
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"konsultasiId\":\"" + createRatingDto.getKonsultasiId() + "\",\"rating\":5,\"review\":\"Great service!\"}"))
@@ -86,7 +86,7 @@ class RatingControllerTest {
 
     @Test
     void testCreateRating_MissingToken() throws Exception {
-        mockMvc.perform(post("/rating")
+        mockMvc.perform(post("/api/rating")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"konsultasiId\":\"" + createRatingDto.getKonsultasiId() + "\",\"rating\":5,\"review\":\"Great service!\"}"))
                 .andExpect(status().isUnauthorized())
@@ -96,7 +96,7 @@ class RatingControllerTest {
 
     @Test
     void testCreateRating_InvalidTokenFormat() throws Exception {
-        mockMvc.perform(post("/rating")
+        mockMvc.perform(post("/api/rating")
                 .header("Authorization", "InvalidFormat")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"konsultasiId\":\"" + createRatingDto.getKonsultasiId() + "\",\"rating\":5,\"review\":\"Great service!\"}"))
@@ -109,7 +109,7 @@ class RatingControllerTest {
     void testUpdateRating_Success() throws Exception {
         when(ratingService.updateRating(any(), any(), any())).thenReturn(ratingResponse);
 
-        mockMvc.perform(put("/rating/" + ratingId)
+        mockMvc.perform(put("/api/rating/" + ratingId)
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"rating\":4,\"review\":\"Updated review\"}"))
@@ -121,7 +121,7 @@ class RatingControllerTest {
 
     @Test
     void testDeleteRating_Success() throws Exception {
-        mockMvc.perform(delete("/rating/" + ratingId)
+        mockMvc.perform(delete("/api/rating/" + ratingId)
                 .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
@@ -133,7 +133,7 @@ class RatingControllerTest {
         List<RatingResponseDto> ratings = Arrays.asList(ratingResponse);
         when(ratingService.getRatingsByCaregiver(caregiverId)).thenReturn(ratings);
 
-        mockMvc.perform(get("/rating/caregiver/" + caregiverId))
+        mockMvc.perform(get("/api/rating/caregiver/" + caregiverId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.message").value("Ratings retrieved successfully"))
@@ -150,7 +150,7 @@ class RatingControllerTest {
 
         when(ratingService.getCaregiverRatingStats(caregiverId)).thenReturn(stats);
 
-        mockMvc.perform(get("/rating/caregiver/" + caregiverId + "/stats"))
+        mockMvc.perform(get("/api/rating/caregiver/" + caregiverId + "/stats"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.message").value("Caregiver rating stats retrieved successfully"))
@@ -164,7 +164,7 @@ class RatingControllerTest {
         List<RatingResponseDto> ratings = Arrays.asList(ratingResponse);
         when(ratingService.getRatingsByPacilian(pacilianId, token)).thenReturn(ratings);
 
-        mockMvc.perform(get("/rating/pacilian/" + pacilianId)
+        mockMvc.perform(get("/api/rating/pacilian/" + pacilianId)
                 .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
@@ -176,7 +176,7 @@ class RatingControllerTest {
     void testGetRatingById_Success() throws Exception {
         when(ratingService.getRatingById(ratingId)).thenReturn(ratingResponse);
 
-        mockMvc.perform(get("/rating/" + ratingId))
+        mockMvc.perform(get("/api/rating/" + ratingId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.message").value("Rating retrieved successfully"))

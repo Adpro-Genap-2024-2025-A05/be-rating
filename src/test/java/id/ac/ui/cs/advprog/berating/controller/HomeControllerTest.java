@@ -18,7 +18,7 @@ class HomeControllerTest {
 
     @Test
     void testHealthCheck() throws Exception {
-        mockMvc.perform(get("/"))
+        mockMvc.perform(get("/api"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.message").value("Service is running"))
